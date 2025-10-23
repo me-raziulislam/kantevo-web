@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+/* Enable class-based dark mode instead of system preference */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ------------------------
+   Light theme variables
+------------------------- */
+:root {
+    --color-primary: #55d244;
+    /* lime-500 */
+    --color-primary-dark: #4ebb3f;
+    /* darker lime */
+    --color-bg: #f9fafb;
+    /* light background */
+    --color-bg-card: #fff;
+    /* light card background */
+    --color-text: #1f2937;
+    /* gray-800 */
+}
+
+/* ------------------------
+   Dark theme variables
+------------------------- */
+.dark {
+    --color-primary: #55d244;
+    /* keep same if you want */
+    --color-primary-dark: #4ebb3f;
+    --color-bg: #111827;
+    /* dark background */
+    --color-bg-card: #1f2937;
+    /* dark card background */
+    --color-text: #f9fafb;
+    /* white-ish */
+}
+
+/* ------------------------
+   Register variables with Tailwind
+   This makes them available as bg-primary, text-text, etc.
+------------------------- */
+@theme {
+    --color-primary: var(--color-primary);
+    --color-primary-dark: var(--color-primary-dark);
+    --color-background: var(--color-bg);
+    --color-background-card: var(--color-bg-card);
+    --color-text: var(--color-text);
+}
+
+/* ------------------------
+   Optional base styles to apply theme automatically
+------------------------- */
+html {
+    background-color: var(--color-background);
+    color: var(--color-text);
+}
+
+body {
+    background-color: var(--color-background);
+    color: var(--color-text);
+}
