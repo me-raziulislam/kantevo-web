@@ -7,7 +7,7 @@ const AuthContext = createContext();
 
 // Create centralized axios instance
 const api = axios.create({
-    baseURL: 'http://localhost:5050/api',
+    baseURL: 'https://kantevo-server.onrender.com/api', // http://localhost:5050/api
 });
 
 export const AuthProvider = ({ children }) => {

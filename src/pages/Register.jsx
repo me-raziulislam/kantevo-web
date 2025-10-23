@@ -27,7 +27,7 @@ const Register = () => {
 
     const fetchColleges = async () => {
         try {
-            const res = await axios.get('http://localhost:5050/api/colleges');
+            const res = await axios.get('https://kantevo-server.onrender.com/api/colleges');
             setColleges(res.data);
         } catch (err) {
             console.error(err);
@@ -81,8 +81,8 @@ const Register = () => {
         try {
             const endpoint =
                 formData.role === 'canteen'
-                    ? 'http://localhost:5050/api/auth/register/canteen'
-                    : 'http://localhost:5050/api/auth/register/student';
+                    ? 'https://kantevo-server.onrender.com/api/auth/register/canteen'
+                    : 'https://kantevo-server.onrender.com/api/auth/register/student';
 
             // Prepare payload differently for student and canteen
             const payload =
