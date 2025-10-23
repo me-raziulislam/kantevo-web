@@ -5,9 +5,11 @@ import { io } from 'socket.io-client';
 
 const AuthContext = createContext();
 
+const SERVER_URL = import.meta.env.VITE_SERVER_URL;
+
 // Create centralized axios instance
 const api = axios.create({
-    baseURL: 'https://kantevo-server.onrender.com/api', // http://localhost:5050/api
+    baseURL: `${SERVER_URL}/api`, // http://localhost:5050/api
 });
 
 export const AuthProvider = ({ children }) => {

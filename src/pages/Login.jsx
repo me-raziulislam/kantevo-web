@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { FaLock, FaEnvelope } from "react-icons/fa";
 
@@ -9,7 +8,7 @@ const Login = () => {
     const [formData, setFormData] = useState({ email: "", password: "" });
     const [error, setError] = useState("");
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login, api } = useAuth(); // use api from context instead of axios
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -20,15 +19,15 @@ const Login = () => {
         setError("");
 
         try {
-            const res = await axios.post(
-                "https://kantevo-server.onrender.com/api/auth/login",
-                formData
-            );
+            // Use centralized axios instance from AuthContext
+            const res = await api.post("/auth/login", formData);
 
             toast.success("Login successful!", { autoClose: 2000 });
 
+            // Store user + token via AuthContext
             login(res.data.user, res.data.token);
 
+            // Role-based navigation
             setTimeout(() => {
                 if (res.data.user.role === "canteenOwner") {
                     navigate("/canteen");
@@ -40,7 +39,10 @@ const Login = () => {
             }, 1000);
         } catch (err) {
             const status = err.response?.status;
-            const msg = err.response?.data?.msg || "Login failed";
+            const msg =
+                err.response?.data?.message ||
+                err.response?.data?.msg ||
+                "Login failed";
 
             if (status === 403 && msg.toLowerCase().includes("verify your email")) {
                 toast.error(msg, { autoClose: 4000 });
@@ -50,6 +52,7 @@ const Login = () => {
             }
 
             toast.error(msg, { autoClose: 3000 });
+            setError(msg);
         }
     };
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 import { FaUser, FaEnvelope, FaLock, FaStore, FaUniversity, FaPhone, FaIdBadge } from 'react-icons/fa';
 
 const Register = () => {
@@ -20,6 +20,7 @@ const Register = () => {
     const [error, setError] = useState('');
     const [agree, setAgree] = useState(false); // Checkbox state
     const navigate = useNavigate();
+    const { api } = useAuth(); // Use centralized API instance
 
     useEffect(() => {
         fetchColleges();
@@ -27,7 +28,7 @@ const Register = () => {
 
     const fetchColleges = async () => {
         try {
-            const res = await axios.get('https://kantevo-server.onrender.com/api/colleges');
+            const res = await api.get('/colleges'); // use api instead of axios
             setColleges(res.data);
         } catch (err) {
             console.error(err);
@@ -47,6 +48,16 @@ const Register = () => {
             rollNumber: '',
         });
     };
+
+    // Add this function inside your Register component
+    const handleDevNotice = (e) => {
+        e.preventDefault(); // Prevent form submission
+        toast.info(
+            "Our website is currently under development. Registration will be available soon. Thank you for your patience.",
+            { autoClose: 5000 }
+        );
+    };
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -81,8 +92,8 @@ const Register = () => {
         try {
             const endpoint =
                 formData.role === 'canteen'
-                    ? 'https://kantevo-server.onrender.com/api/auth/register/canteen'
-                    : 'https://kantevo-server.onrender.com/api/auth/register/student';
+                    ? '/auth/register/canteen'
+                    : '/auth/register/student';
 
             // Prepare payload differently for student and canteen
             const payload =
@@ -104,7 +115,7 @@ const Register = () => {
                         rollNumber: formData.rollNumber.trim().toUpperCase(),
                     };
 
-            await axios.post(endpoint, payload);
+            await api.post(endpoint, payload); // use centralized api
 
             toast.success(
                 'Account created! Please verify your email via OTP sent to your inbox.',
@@ -115,8 +126,12 @@ const Register = () => {
                 navigate('/verify-email', { state: { email: formData.email } });
             }, 4000);
         } catch (err) {
-            const msg = err.response?.data?.msg || 'Registration failed';
+            const msg =
+                err.response?.data?.message ||
+                err.response?.data?.msg ||
+                'Registration failed';
             toast.error(msg, { autoClose: 3000 });
+            setError(msg);
         }
     };
 
@@ -142,7 +157,7 @@ const Register = () => {
                 )}
 
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form onSubmit={handleDevNotice} className="space-y-5">
                     {/* Full Name */}
                     <div className="relative">
                         <FaUser className="absolute top-3 left-3 text-text/50" />
@@ -300,7 +315,7 @@ const Register = () => {
                     </Link>
                 </p>
             </div>
-        </div>
+        </div >
     );
 };
 

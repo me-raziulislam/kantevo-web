@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
 import { toast } from 'react-toastify';
+import { useAuth } from '../context/AuthContext';
 
 const VerifyEmailOTP = () => {
     const location = useLocation();
     const navigate = useNavigate();
+    const { api } = useAuth(); // Use centralized API
 
     // Try to get email passed from registration page
     const initialEmail = location.state?.email || '';
@@ -24,17 +25,18 @@ const VerifyEmailOTP = () => {
         }
         setLoading(true);
         try {
-            const res = await axios.post('http://localhost:5050/api/auth/verify-email-otp', {
-                email,
-                otp,
-            });
-            toast.success(res.data.msg || 'Email verified successfully!');
+            const res = await api.post('/auth/verify-email-otp', { email, otp });
+            toast.success(res.data.message || 'Email verified successfully!');
             // Redirect to login after 2 seconds
             setTimeout(() => {
                 navigate('/login');
             }, 2000);
         } catch (err) {
-            toast.error(err.response?.data?.msg || 'Verification failed');
+            toast.error(
+                err.response?.data?.message ||
+                err.response?.data?.msg ||
+                'Verification failed'
+            );
         } finally {
             setLoading(false);
         }
@@ -48,10 +50,14 @@ const VerifyEmailOTP = () => {
         }
         setResendLoading(true);
         try {
-            const res = await axios.post('http://localhost:5050/api/auth/resend-email-otp', { email });
-            toast.success(res.data.msg || 'OTP resent successfully');
+            const res = await api.post('/auth/resend-email-otp', { email });
+            toast.success(res.data.message || res.data.msg || 'OTP resent successfully');
         } catch (err) {
-            toast.error(err.response?.data?.msg || 'Failed to resend OTP');
+            toast.error(
+                err.response?.data?.message ||
+                err.response?.data?.msg ||
+                'Failed to resend OTP'
+            );
         } finally {
             setResendLoading(false);
         }
