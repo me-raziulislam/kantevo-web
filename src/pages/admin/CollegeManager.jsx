@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
+import Modal from '../../components/Modal';
 
 const CollegeManager = () => {
     const [colleges, setColleges] = useState([]);
@@ -11,8 +12,13 @@ const CollegeManager = () => {
     });
     const [loading, setLoading] = useState(false);
 
+    const [editingCollege, setEditingCollege] = useState(null); // for edit mode
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false); // delete confirmation
+    const [collegeToDelete, setCollegeToDelete] = useState(null);
+
     const { api } = useAuth(); // ✅ use centralized API instance
 
+    // Fetch all colleges
     const fetchColleges = async () => {
         try {
             setLoading(true);
@@ -26,6 +32,7 @@ const CollegeManager = () => {
         }
     };
 
+    // Handle form input changes
     const handleChange = (e) => {
         setFormData((prev) => ({
             ...prev,
@@ -33,17 +40,64 @@ const CollegeManager = () => {
         }));
     };
 
-    const addCollege = async (e) => {
+    // Add or update college
+    const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const res = await api.post('/colleges', formData);
-            toast.success(`College "${res.data.name}" added!`);
+            if (editingCollege) {
+                // Update existing college
+                const res = await api.patch(`/colleges/${editingCollege._id}`, formData);
+                toast.success(`College "${res.data.name}" updated!`);
+                setEditingCollege(null);
+            } else {
+                // Add new college
+                const res = await api.post('/colleges', formData);
+                toast.success(`College "${res.data.name}" added!`);
+            }
+
             setFormData({ name: '', code: '', location: '' });
             fetchColleges();
         } catch (err) {
             console.error(err);
-            toast.error(err.response?.data?.message || 'Error adding college');
+            toast.error(err.response?.data?.message || 'Error saving college');
         }
+    };
+
+    // Edit college (populate form)
+    const handleEdit = (college) => {
+        setEditingCollege(college);
+        setFormData({
+            name: college.name,
+            code: college.code,
+            location: college.location || '',
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' }); // scroll to form
+    };
+
+    // Open delete modal
+    const handleDelete = (college) => {
+        setCollegeToDelete(college);
+        setDeleteModalOpen(true);
+    };
+
+    // Confirm deletion
+    const confirmDelete = async () => {
+        try {
+            await api.delete(`/colleges/${collegeToDelete._id}`);
+            toast.success(`College "${collegeToDelete.name}" deleted`);
+            setDeleteModalOpen(false);
+            setCollegeToDelete(null);
+            fetchColleges();
+        } catch (err) {
+            console.error(err);
+            toast.error(err.response?.data?.message || 'Error deleting college');
+        }
+    };
+
+    // Cancel editing
+    const cancelEdit = () => {
+        setEditingCollege(null);
+        setFormData({ name: '', code: '', location: '' });
     };
 
     useEffect(() => {
@@ -54,8 +108,9 @@ const CollegeManager = () => {
         <div className="p-6">
             <h2 className="text-2xl font-bold mb-4">Manage Colleges</h2>
 
+            {/* Add / Edit College Form */}
             <form
-                onSubmit={addCollege}
+                onSubmit={handleSubmit}
                 className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4"
             >
                 <input
@@ -84,12 +139,24 @@ const CollegeManager = () => {
                     placeholder="Location"
                     className="border p-2 rounded"
                 />
-                <button
-                    type="submit"
-                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                >
-                    Add College
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        type="submit"
+                        className={`px-4 py-2 rounded text-white ${editingCollege ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-600 hover:bg-green-700'
+                            }`}
+                    >
+                        {editingCollege ? 'Update College' : 'Add College'}
+                    </button>
+                    {editingCollege && (
+                        <button
+                            type="button"
+                            onClick={cancelEdit}
+                            className="px-4 py-2 rounded bg-gray-400 text-white hover:bg-gray-500"
+                        >
+                            Cancel Edit
+                        </button>
+                    )}
+                </div>
             </form>
 
             {loading ? (
@@ -99,13 +166,46 @@ const CollegeManager = () => {
                     {colleges.map((college) => (
                         <li
                             key={college._id}
-                            className="border p-3 rounded shadow-sm"
+                            className="border p-3 rounded shadow-sm flex justify-between items-center"
                         >
-                            <strong>{college.name}</strong> ({college.code}) -{' '}
-                            {college.location}
+                            <div>
+                                <strong>{college.name}</strong> ({college.code}) -{' '}
+                                {college.location || '-'}
+                            </div>
+                            <div className="flex gap-2">
+                                {/* Edit Button */}
+                                <button
+                                    onClick={() => handleEdit(college)}
+                                    className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-sm"
+                                >
+                                    Edit
+                                </button>
+
+                                {/* Delete Button */}
+                                <button
+                                    onClick={() => handleDelete(college)}
+                                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+                                >
+                                    Delete
+                                </button>
+                            </div>
                         </li>
                     ))}
+                    {colleges.length === 0 && (
+                        <li className="text-center text-text/70 py-4">No colleges found.</li>
+                    )}
                 </ul>
+            )}
+
+            {/* Delete Confirmation Modal using existing Modal component */}
+            {deleteModalOpen && collegeToDelete && (
+                <Modal
+                    title="Confirm Delete"
+                    onClose={() => setDeleteModalOpen(false)}
+                    onConfirm={confirmDelete}
+                >
+                    Are you sure you want to delete college "{collegeToDelete.name}"? This action cannot be undone.
+                </Modal>
             )}
         </div>
     );
