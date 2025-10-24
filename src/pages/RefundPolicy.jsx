@@ -38,7 +38,10 @@ export default function RefundPolicy() {
 
                 <h3 className="text-xl font-semibold mb-2 text-text">🧾 Refund Process</h3>
                 <p className="text-text/80 leading-relaxed mb-4">
-                    Report the issue via the Kantevo App/Website or by emailing <span className="text-primary">support@kantevo.com</span> within 30 minutes of receiving the order.
+                    Report the issue via the Kantevo App/Website or by emailing{" "}
+                    <a href="mailto:support@kantevo.com" className="text-primary">
+                        support@kantevo.com
+                    </a>{" "} within 30 minutes of receiving the order.
                     Provide your Order ID, payment reference, and (if applicable) a clear photo of the item.
                     The Kantevo support team will verify the claim with the canteen.
                     Once approved, the refund will be processed within 5–7 business days to your original payment method (UPI, card, wallet, etc.).
@@ -72,7 +75,10 @@ export default function RefundPolicy() {
 
                 <h3 className="text-xl font-semibold mb-2 text-text">🧾 Refund / Adjustment Process</h3>
                 <p className="text-text/80 leading-relaxed mb-10">
-                    Report any concern to <span className="text-primary">vendor.support@kantevo.com</span> within 24 hours of the incident.
+                    Report any concern to{" "}
+                    <a href="mailto:support@kantevo.com" className="text-primary">
+                        support@kantevo.com
+                    </a>{" "} within 24 hours of the incident.
                     Provide your Order ID, date/time, and any supporting evidence (such as photos or order logs).
                     The Kantevo Support Team will review the issue, verify the data, and communicate the outcome.
                     Approved refunds or adjustments will be processed as credits to the canteen’s Kantevo account or as deductions/adjustments in the next payout cycle.

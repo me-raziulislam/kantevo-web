@@ -5,7 +5,7 @@ export default function ReturnPolicy() {
             {/* Hero Section */}
             <section className="text-center mt-10 max-w-4xl" data-aos="fade-up">
                 <h1 className="text-4xl sm:text-5xl font-extrabold text-primary">
-                    📝 Return & Refund Policy
+                    📝 Return Policy
                 </h1>
                 <p className="mt-4 text-lg text-text/80 leading-relaxed">
                     Ensuring fairness and transparency for both students and canteen owners.
@@ -37,7 +37,10 @@ export default function ReturnPolicy() {
 
                 <h3 className="text-xl font-semibold mb-2 text-text">🧾 Resolution Process</h3>
                 <p className="text-text/80 leading-relaxed mb-4">
-                    Visit the Help/Support section or contact <span className="text-primary">support@kantevo.com</span> within 30 minutes of pickup.
+                    Visit the Help/Support section or contact{" "}
+                    <a href="mailto:support@kantevo.com" className="text-primary">
+                        support@kantevo.com
+                    </a>{" "} within 30 minutes of pickup.
                     Provide your Order ID, issue description, and (if applicable) a photo of the received food.
                     The canteen and Kantevo team will review your request. If approved, you may receive a replacement or refund (at the canteen’s discretion).
                 </p>
@@ -67,7 +70,10 @@ export default function ReturnPolicy() {
 
                 <h3 className="text-xl font-semibold mb-2 text-text">🧾 Resolution Process</h3>
                 <p className="text-text/80 leading-relaxed mb-10">
-                    Report any issue to <span className="text-primary">support@kantevo.com</span> within 24 hours.
+                    Report any issue to{" "}
+                    <a href="mailto:support@kantevo.com" className="text-primary">
+                        support@kantevo.com
+                    </a>{" "} within 24 hours.
                     Provide order details and supporting proof (like photos or logs).
                     Kantevo will mediate between the student and canteen for a fair outcome.
                 </p>

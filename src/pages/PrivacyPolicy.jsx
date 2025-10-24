@@ -34,8 +34,13 @@ export default function PrivacyPolicy() {
                 </p>
 
                 <h3 className="text-xl font-semibold mb-2 text-text">Your Rights</h3>
-                <p className="text-text/80 leading-relaxed mb-10">
-                    You can request account deletion, correction of details, or opt-out from marketing communication. Contact <span className="text-primary">support@kantevo.com</span> for assistance.
+                <p>
+                    You can request account deletion, correction of details, or opt-out
+                    from marketing communication. Contact{" "}
+                    <a href="mailto:support@kantevo.com" className="text-primary">
+                        support@kantevo.com
+                    </a>{" "}
+                    for assistance.
                 </p>
             </section>
 

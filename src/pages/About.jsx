@@ -80,7 +80,10 @@ export default function About() {
                     Have questions, feedback, or partnership inquiries? We’d love to hear from you!
                 </p>
                 {/* <p className="text-text/80 mb-1">📍 Address: Madhapur, Hyderabad, Telangana</p> */}
-                <p className="text-text/80 mb-1">📧 Email: support@kantevo.com</p>
+                <p className="text-text/80 mb-1">📧 Email:{" "}
+                    <a href="mailto:support@kantevo.com" className="text-primary">
+                        support@kantevo.com
+                    </a>{" "}</p>
                 {/* <p className="text-text/80 mb-1">📞 Phone: +91-XXXXXXXXXX</p> */}
                 <p className="text-text/80 mb-1">🌐 Website: www.kantevo.com</p>
                 <p className="text-text/80 mb-4">⏰ Working Hours: Monday – Saturday, 9:00 AM – 4:00 PM</p>

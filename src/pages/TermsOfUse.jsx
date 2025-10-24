@@ -71,7 +71,10 @@ export default function TermsOfUse() {
                 </p>
 
                 <p className="text-text/80 text-sm mb-10">
-                    For legal queries, contact us at <span className="text-primary">support@kantevo.com</span>.
+                    For legal queries, contact us at{" "}
+                    <a href="mailto:support@kantevo.com" className="text-primary">
+                        support@kantevo.com
+                    </a>.
                 </p>
             </section>
         </div>
