@@ -26,8 +26,14 @@ function App() {
     );
   }
 
-  // Show footer only on Home page
-  const showFooter = location.pathname === "/";
+  // const publicPaths = ["/", "/login", "/register", "/privacy-policy", "/terms-of-use", "/refund-policy", "/return-policy", "/about"];
+  // const showFooter = publicPaths.includes(location.pathname);
+
+  // Show footer only on non dashboard pages
+  const hideFooter = location.pathname.startsWith("/student") ||
+    location.pathname.startsWith("/admin") ||
+    location.pathname.startsWith("/canteen");
+  const showFooter = !hideFooter;
 
   return (
     <div className="min-h-screen flex flex-col">
