@@ -26,13 +26,16 @@ function App() {
     );
   }
 
+  // Show footer only on Home page
+  const showFooter = location.pathname === "/";
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-grow">
         <AppRoutes />
       </main>
-      <Footer />
+      {showFooter && <Footer />}
     </div>
   );
 }
