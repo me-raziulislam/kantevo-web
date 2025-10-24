@@ -58,3 +58,13 @@ body {
     background-color: var(--color-background);
     color: var(--color-text);
 }
+
+@keyframes shimmer {
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.animate-shimmer {
+    animation: shimmer 1.5s linear infinite;
+}
