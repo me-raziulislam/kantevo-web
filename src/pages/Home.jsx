@@ -7,7 +7,7 @@ export default function Home() {
         <div className="flex flex-col items-center px-4 sm:px-8 bg-background text-text transition-colors duration-300 min-h-screen">
 
             <SEO
-                title="College Canteen Ordering Made Easy"
+                title="Kantevo"
                 description="Kantevo connects students and canteens through a seamless ordering experience. Browse, order, and pay effortlessly."
                 canonicalPath="/"
             />
