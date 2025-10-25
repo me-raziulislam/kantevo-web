@@ -16,7 +16,7 @@ const Navbar = () => {
     return (
         <nav className="bg-background text-text shadow-md px-6 py-3 flex justify-between items-center transition-colors duration-300">
             {/* Logo */}
-            <Link to="/" className="text-2xl font-bold text-primary hover:text-primary-dark">
+            <Link to="/" className="text-2xl font-bold">
                 Kantevo
             </Link>
 

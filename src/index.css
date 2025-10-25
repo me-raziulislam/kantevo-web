@@ -7,9 +7,9 @@
    Light theme variables
 ------------------------- */
 :root {
-    --color-primary: #55d244;
+    --color-primary: #4d7c0f;
     /* lime-500 */
-    --color-primary-dark: #4ebb3f;
+    --color-primary-dark: #436f08;
     /* darker lime */
     --color-bg: #f9fafb;
     /* light background */
@@ -23,9 +23,9 @@
    Dark theme variables
 ------------------------- */
 .dark {
-    --color-primary: #55d244;
+    --color-primary: #4d7c0f;
     /* keep same if you want */
-    --color-primary-dark: #4ebb3f;
+    --color-primary-dark: #436f08;
     --color-bg: #111827;
     /* dark background */
     --color-bg-card: #1f2937;

@@ -9,7 +9,7 @@ const Footer = () => {
 
                     {/* Brand */}
                     <div>
-                        <h2 className="text-2xl font-extrabold text-primary mb-3">Kantevo</h2>
+                        <h2 className="text-2xl font-extrabold mb-3">Kantevo</h2>
                         <p className="text-sm text-text/80 leading-relaxed">
                             Order food easily from your college canteen — fast, reliable, and
                             contactless. Built for students and canteen owners alike.
@@ -53,8 +53,8 @@ const Footer = () => {
 
                 {/* ===== Bottom Section ===== */}
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                    <p className="text-sm text-text/70 text-center md:text-left">
-                        © {new Date().getFullYear()} <span className="font-semibold text-primary">Kantevo</span>. All rights reserved.
+                    <p className="text-sm text-text text-center md:text-left">
+                        © {new Date().getFullYear()} <span>Kantevo</span>. All rights reserved.
                     </p>
 
                     <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-text/70">
