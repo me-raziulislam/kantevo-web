@@ -5,6 +5,7 @@ import AppRoutes from "./routes/AppRoutes";
 import { useAuth } from "./context/AuthContext";
 import AOS from "aos";
 import "aos/dist/aos.css";
+import { Helmet } from "@dr.pogodin/react-helmet";
 
 function App() {
   const { loading } = useAuth();
@@ -35,8 +36,62 @@ function App() {
     location.pathname.startsWith("/canteen");
   const showFooter = !hideFooter;
 
+  // 🔹 Structured data (for sitelinks + search + navigation)
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Kantevo",
+    "url": "https://kantevo.com",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://kantevo.com/search?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  };
+
+  const siteNavigation = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "itemListElement": [
+      {
+        "@type": "SiteNavigationElement",
+        "position": 1,
+        "name": "Home",
+        "url": "https://kantevo.com/"
+      },
+      {
+        "@type": "SiteNavigationElement",
+        "position": 2,
+        "name": "Login",
+        "url": "https://kantevo.com/login"
+      },
+      {
+        "@type": "SiteNavigationElement",
+        "position": 3,
+        "name": "Register",
+        "url": "https://kantevo.com/register"
+      },
+      {
+        "@type": "SiteNavigationElement",
+        "position": 4,
+        "name": "About",
+        "url": "https://kantevo.com/about"
+      }
+    ]
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
+      {/* 🔹 Global Helmet: tells Google about site structure */}
+      <Helmet>
+        <script type="application/ld+json">
+          {JSON.stringify(structuredData)}
+        </script>
+        <script type="application/ld+json">
+          {JSON.stringify(siteNavigation)}
+        </script>
+      </Helmet>
+
       <Navbar />
       <main className="flex-grow">
         <AppRoutes />

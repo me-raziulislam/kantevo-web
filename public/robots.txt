@@ -1,3 +1,28 @@
+# =========================
+# Kantevo Robots Configuration
+# Optimized for React (Vite) + Render SEO
+# =========================
+
+# Allow all major search engines to crawl public pages
 User-agent: *
 Allow: /
+
+# 🚫 Prevent indexing of dashboard routes (student, canteen, admin)
+Disallow: /student/
+Disallow: /canteen/
+Disallow: /admin/
+Disallow: /payment/
+
+# ✅ Allow all public routes (Home, About, Login, Register, Legal pages)
+Allow: /about
+Allow: /login
+Allow: /register
+Allow: /privacy-policy
+Allow: /terms-of-use
+Allow: /return-policy
+Allow: /refund-policy
+
+# =========================
+# Sitemap Reference
+# =========================
 Sitemap: https://kantevo.com/sitemap.xml

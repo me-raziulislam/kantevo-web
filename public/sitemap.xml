@@ -1,11 +1,100 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <!-- ===== Main Public Pages ===== -->
   <url>
     <loc>https://kantevo.com/</loc>
     <priority>1.00</priority>
   </url>
   <url>
+    <loc>https://kantevo.com/about</loc>
+    <priority>0.85</priority>
+  </url>
+  <url>
     <loc>https://kantevo.com/login</loc>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://kantevo.com/register</loc>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://kantevo.com/verify-email</loc>
+    <priority>0.70</priority>
+  </url>
+
+  <!-- ===== Payment Callback ===== -->
+  <url>
+    <loc>https://kantevo.com/payment/verify</loc>
     <priority>0.50</priority>
   </url>
+
+  <!-- ===== Student Dashboard ===== -->
+  <url>
+    <loc>https://kantevo.com/student/home</loc>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://kantevo.com/student/cart</loc>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://kantevo.com/student/orders</loc>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://kantevo.com/student/profile</loc>
+    <priority>0.80</priority>
+  </url>
+
+  <!-- ===== Canteen Dashboard ===== -->
+  <url>
+    <loc>https://kantevo.com/canteen/home</loc>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://kantevo.com/canteen/items</loc>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://kantevo.com/canteen/orders</loc>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://kantevo.com/canteen/profile</loc>
+    <priority>0.80</priority>
+  </url>
+
+  <!-- ===== Admin Dashboard ===== -->
+  <url>
+    <loc>https://kantevo.com/admin/colleges</loc>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://kantevo.com/admin/canteens</loc>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://kantevo.com/admin/orders</loc>
+    <priority>0.80</priority>
+  </url>
+
+  <!-- ===== Legal Pages ===== -->
+  <url>
+    <loc>https://kantevo.com/privacy-policy</loc>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://kantevo.com/terms-of-use</loc>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://kantevo.com/return-policy</loc>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://kantevo.com/refund-policy</loc>
+    <priority>0.70</priority>
+  </url>
+
 </urlset>
