@@ -357,13 +357,9 @@ const StudentHome = () => {
                                     filteredItems.map((item) => {
                                         const countdown = getCountdownAndStatus(item);
                                         const isAvailableNow =
-                                            item.canAddToCart &&
-                                            countdown.isAvailable &&
-                                            canteenOpen;
+                                            item.canAddToCart && countdown.isAvailable && canteenOpen;
                                         const quantity = cart[item._id] || 0;
-                                        const disabled =
-                                            !isAvailableNow ||
-                                            loadingItem === item._id;
+                                        const disabled = !isAvailableNow || loadingItem === item._id;
 
                                         return (
                                             <div
@@ -388,7 +384,7 @@ const StudentHome = () => {
                                                         </p>
                                                     </div>
 
-                                                    <div className="flex flex-wrap justify-between items-center gap-1 mb-1">
+                                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 mb-1 flex-wrap">
                                                         <div className="flex flex-wrap gap-1 text-[10px] sm:text-xs">
                                                             <span
                                                                 className={`px-2 py-0.5 rounded ${isAvailableNow
@@ -396,10 +392,7 @@ const StudentHome = () => {
                                                                     : "bg-red-100 text-red-800"
                                                                     }`}
                                                             >
-                                                                {isAvailableNow
-                                                                    ? "Available"
-                                                                    : item.reason ||
-                                                                    "Unavailable"}
+                                                                {isAvailableNow ? "Available" : item.reason || "Unavailable"}
                                                             </span>
                                                             {item.category && (
                                                                 <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-800">
@@ -407,7 +400,9 @@ const StudentHome = () => {
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <p className="text-[10px] sm:text-sm text-yellow-800 font-semibold whitespace-nowrap">
+
+                                                        {/* Countdown / Next opening text */}
+                                                        <p className="text-[10px] sm:text-sm text-yellow-800 font-semibold whitespace-normal break-words">
                                                             {countdown.text}
                                                         </p>
                                                     </div>
@@ -423,14 +418,10 @@ const StudentHome = () => {
                                                 ) : (
                                                     <button
                                                         disabled={disabled}
-                                                        onClick={() =>
-                                                            updateCart(item._id, 1)
-                                                        }
+                                                        onClick={() => updateCart(item._id, 1)}
                                                         className="bg-primary hover:bg-primary-dark text-white px-2 sm:px-3 py-1 rounded-full font-semibold disabled:bg-gray-400 transition-colors duration-300 mt-1"
                                                     >
-                                                        {loadingItem === item._id
-                                                            ? "Adding..."
-                                                            : "Add"}
+                                                        {loadingItem === item._id ? "Adding..." : "Add"}
                                                     </button>
                                                 )}
                                             </div>
