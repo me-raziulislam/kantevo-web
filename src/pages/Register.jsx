@@ -165,7 +165,7 @@ const Register = () => {
                 )}
 
                 {/* Form */}
-                <form onSubmit={handleDevNotice} className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-5">
                     {/* Full Name */}
                     <div className="relative">
                         <FaUser className="absolute top-3 left-3 text-text/50" />
