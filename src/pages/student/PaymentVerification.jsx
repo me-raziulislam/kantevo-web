@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
+import SEO from "../../components/SEO";
 
 const PaymentVerification = () => {
     const { orderId } = useParams();
@@ -34,6 +35,13 @@ const PaymentVerification = () => {
 
     return (
         <div className="p-6 max-w-xl mx-auto text-center bg-background text-text">
+
+            <SEO
+                title="Payment Verification"
+                description="Verifying your payment for a secure and seamless canteen ordering experience on Kantevo."
+                canonicalPath="/payment/verify"
+            />
+
             <h2 className="text-2xl font-bold mb-4 text-primary">Payment Verification</h2>
 
             {loading ? (
@@ -44,10 +52,10 @@ const PaymentVerification = () => {
                         Status:{" "}
                         <span
                             className={`font-semibold ${status === "paid"
-                                    ? "text-green-600"
-                                    : status === "failed"
-                                        ? "text-red-600"
-                                        : "text-yellow-600"
+                                ? "text-green-600"
+                                : status === "failed"
+                                    ? "text-red-600"
+                                    : "text-yellow-600"
                                 }`}
                         >
                             {status}

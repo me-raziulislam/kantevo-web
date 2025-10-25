@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
+import SEO from "../components/SEO";
 
 const VerifyEmailOTP = () => {
     const location = useLocation();
@@ -65,6 +66,13 @@ const VerifyEmailOTP = () => {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-background px-4">
+
+            <SEO
+                title="Verify Email"
+                description="Verify your email address to complete registration and start ordering on Kantevo."
+                canonicalPath="/verify-email"
+            />
+
             <div
                 className="bg-background p-8 rounded-2xl shadow-lg w-full max-w-md border border-gray-200 dark:border-gray-700 transition-colors duration-300"
             >

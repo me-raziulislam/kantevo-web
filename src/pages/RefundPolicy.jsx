@@ -1,7 +1,17 @@
 // pages/RefundPolicy.jsx
+
+import SEO from "../components/SEO";
+
 export default function RefundPolicy() {
     return (
         <div className="flex flex-col items-center px-4 sm:px-8 bg-background text-text transition-colors duration-300 min-h-screen">
+
+            <SEO
+                title="Refund Policy"
+                description="Learn about Kantevo’s refund process and conditions for transactions made on our platform."
+                canonicalPath="/refund-policy"
+            />
+
             {/* Hero Section */}
             <section className="text-center mt-10 max-w-4xl" data-aos="fade-up">
                 <h1 className="text-4xl sm:text-5xl font-extrabold text-primary">

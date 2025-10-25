@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
+import SEO from "../../components/SEO";
 
 const CanteenManager = () => {
     const [canteens, setCanteens] = useState([]);
@@ -65,6 +66,13 @@ const CanteenManager = () => {
 
     return (
         <div className="p-6">
+
+            <SEO
+                title="Manage Canteens"
+                description="View and manage all registered canteens across colleges on Kantevo."
+                canonicalPath="/admin/canteens"
+            />
+
             <h2 className="text-2xl font-bold mb-4">Registered Canteens</h2>
 
             <input

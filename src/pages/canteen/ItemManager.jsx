@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
 import { FaTrash, FaPlus, FaEdit, FaSave, FaTimes, FaSort } from "react-icons/fa";
+import SEO from "../../components/SEO";
 
 const ItemManager = () => {
     const { api, socket } = useAuth();
@@ -204,6 +205,13 @@ const ItemManager = () => {
 
     return (
         <div className="p-4 sm:p-6 bg-background text-text min-h-full">
+
+            <SEO
+                title="Manage Items"
+                description="Add, edit, or remove food items from your canteen’s digital menu on Kantevo."
+                canonicalPath="/canteen/items"
+            />
+
             <h1 className="text-2xl font-semibold mb-6 text-center sm:text-left">
                 Manage Your Items
             </h1>

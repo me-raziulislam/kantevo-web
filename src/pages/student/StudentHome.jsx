@@ -3,6 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
+import SEO from "../../components/SEO";
 dayjs.extend(duration);
 
 const StudentHome = () => {
@@ -252,6 +253,13 @@ const StudentHome = () => {
     // -------------------- MAIN UI --------------------
     return (
         <div className="p-4 md:p-8 space-y-8 bg-background text-text transition-colors duration-300 min-h-screen max-w-7xl mx-auto">
+
+            <SEO
+                title="Student Dashboard"
+                description="Explore nearby canteens, browse menus, and place your food orders directly from Kantevo."
+                canonicalPath="/student/home"
+            />
+
             <h1 className="text-2xl md:text-3xl font-extrabold text-primary mb-6">
                 Welcome, {user?.name} 👋
             </h1>

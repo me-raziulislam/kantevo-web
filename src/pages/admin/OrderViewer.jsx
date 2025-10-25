@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import debounce from "lodash.debounce";
+import SEO from "../../components/SEO";
 
 const LIMIT = 10;
 
@@ -107,6 +108,13 @@ const OrderViewer = () => {
 
     return (
         <div className="p-6 bg-background min-h-screen text-text">
+
+            <SEO
+                title="View Orders"
+                description="Monitor and analyze all student canteen orders across the Kantevo platform."
+                canonicalPath="/admin/orders"
+            />
+
             <h2 className="text-2xl font-bold mb-6 text-text">All Orders</h2>
 
             {/* Filters */}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
+import SEO from "../../components/SEO";
 import dayjs from "dayjs";
 
 const LIMIT = 10;
@@ -207,6 +208,13 @@ const OrderManager = () => {
 
     return (
         <div className="max-w-7xl mx-auto p-4 bg-background text-text min-h-full">
+
+            <SEO
+                title="Manage Orders"
+                description="View and fulfill student orders efficiently with Kantevo’s canteen order management system."
+                canonicalPath="/canteen/orders"
+            />
+
             <h1 className="text-2xl font-semibold mb-4 text-text">Orders Management</h1>
 
             {/* Filters Form */}

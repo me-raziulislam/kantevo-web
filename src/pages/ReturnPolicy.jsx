@@ -1,7 +1,17 @@
 // pages/ReturnPolicy.jsx
+
+import SEO from "../components/SEO";
+
 export default function ReturnPolicy() {
     return (
         <div className="flex flex-col items-center px-4 sm:px-8 bg-background text-text transition-colors duration-300 min-h-screen">
+
+            <SEO
+                title="Return Policy"
+                description="Understand Kantevo’s return policy for canteen orders and payments."
+                canonicalPath="/return-policy"
+            />
+
             {/* Hero Section */}
             <section className="text-center mt-10 max-w-4xl" data-aos="fade-up">
                 <h1 className="text-4xl sm:text-5xl font-extrabold text-primary">

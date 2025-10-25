@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
+import SEO from "../components/SEO";
 
 const CanteenDashboard = () => {
     const { logout } = useAuth();
@@ -23,6 +24,12 @@ const CanteenDashboard = () => {
 
     return (
         <div className="flex h-screen bg-background text-text transition-colors duration-300">
+
+            <SEO
+                title="Canteen Dashboard"
+                description="Manage your canteen, view orders, update menu items, and track performance on Kantevo."
+                canonicalPath="/canteen/dashboard"
+            />
             {/* Sidebar */}
             <div className={`fixed md:static w-64 bg-background border-r border-gray-300 dark:border-gray-600 z-30 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out`}>
                 <div className="p-4 border-b border-gray-300 dark:border-gray-600 text-lg font-bold text-center text-primary">

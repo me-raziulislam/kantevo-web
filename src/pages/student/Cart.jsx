@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
+import SEO from "../../components/SEO";
 
 // ---- Configurable charges ----
 const GST_PERCENT = 0; // %
@@ -189,6 +190,13 @@ const Cart = () => {
 
     return (
         <div className="p-6 space-y-6 max-w-4xl mx-auto bg-background text-text transition-colors duration-300">
+
+            <SEO
+                title="Your Cart"
+                description="Review your selected canteen items before checkout and payment on Kantevo."
+                canonicalPath="/student/cart"
+            />
+
             <h1 className="text-2xl font-semibold text-text">{user?.name}'s Cart 🛒</h1>
 
             {loading ? (

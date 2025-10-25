@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal';
+import SEO from "../../components/SEO";
 
 const CollegeManager = () => {
     const [colleges, setColleges] = useState([]);
@@ -106,6 +107,13 @@ const CollegeManager = () => {
 
     return (
         <div className="p-6">
+
+            <SEO
+                title="Manage Colleges"
+                description="Admin tool to add and manage colleges using the Kantevo canteen ordering system."
+                canonicalPath="/admin/colleges"
+            />
+
             <h2 className="text-2xl font-bold mb-4">Manage Colleges</h2>
 
             {/* Add / Edit College Form */}

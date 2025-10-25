@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
+import SEO from "../components/SEO";
 
 const AdminDashboard = () => {
     const { logout } = useAuth();
@@ -22,6 +23,13 @@ const AdminDashboard = () => {
 
     return (
         <div className="flex h-screen bg-background text-text transition-colors duration-300">
+
+            <SEO
+                title="Admin Dashboard"
+                description="Kantevo admin panel to manage colleges, canteens, and platform data."
+                canonicalPath="/admin"
+            />
+
             {/* Sidebar */}
             <div className={`fixed md:static w-64 bg-background border-r border-gray-300 dark:border-gray-600 z-30 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out`}>
                 <div className="p-4 border-b border-gray-300 dark:border-gray-600 text-lg font-bold text-center text-primary">

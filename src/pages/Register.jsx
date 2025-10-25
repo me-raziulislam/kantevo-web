@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { FaUser, FaEnvelope, FaLock, FaStore, FaUniversity, FaPhone, FaIdBadge } from 'react-icons/fa';
+import SEO from "../components/SEO";
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -137,6 +138,13 @@ const Register = () => {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-background px-4">
+
+            <SEO
+                title="Register"
+                description="Create your Kantevo account and start ordering food from your college canteen today."
+                canonicalPath="/register"
+            />
+
             <div
                 className="bg-background p-8 rounded-2xl shadow-lg w-full max-w-md border border-gray-200 dark:border-gray-700 transition-colors duration-300"
                 data-aos="fade-up"

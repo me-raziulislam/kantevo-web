@@ -1,9 +1,17 @@
 import { Link } from "react-router-dom";
 import { FaUtensils, FaMobileAlt, FaClock, FaUsers, FaShoppingCart, FaChartLine } from "react-icons/fa";
+import SEO from "../components/SEO";
 
 export default function Home() {
     return (
         <div className="flex flex-col items-center px-4 sm:px-8 bg-background text-text transition-colors duration-300 min-h-screen">
+
+            <SEO
+                title="College Canteen Ordering Made Easy"
+                description="Kantevo connects students and canteens through a seamless ordering experience. Browse, order, and pay effortlessly."
+                canonicalPath="/"
+            />
+
             {/* Hero Section */}
             <section className="text-center mt-10 max-w-4xl" data-aos="fade-up">
                 <h1 className="text-4xl sm:text-5xl font-extrabold text-primary">

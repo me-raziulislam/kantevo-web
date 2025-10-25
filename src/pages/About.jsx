@@ -1,9 +1,17 @@
 // pages/About.jsx
 import { FaInstagram } from "react-icons/fa";
+import SEO from "../components/SEO";
 
 export default function About() {
     return (
         <div className="flex flex-col items-center px-4 sm:px-8 bg-background text-text transition-colors duration-300 min-h-screen">
+
+            <SEO
+                title="About Us"
+                description="Learn about Kantevo — the platform revolutionizing college canteen food ordering."
+                canonicalPath="/about"
+            />
+
             {/* Hero Section */}
             <section className="text-center mt-10 max-w-4xl" data-aos="fade-up">
                 <h1 className="text-4xl sm:text-5xl font-extrabold text-primary">

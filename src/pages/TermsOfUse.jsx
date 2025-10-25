@@ -1,7 +1,17 @@
 // pages/TermsOfUse.jsx
+
+import SEO from "../components/SEO";
+
 export default function TermsOfUse() {
     return (
         <div className="flex flex-col items-center px-4 sm:px-8 bg-background text-text transition-colors duration-300 min-h-screen">
+
+            <SEO
+                title="Terms of Use"
+                description="Review the terms and conditions for using Kantevo’s digital canteen ordering platform."
+                canonicalPath="/terms-of-use"
+            />
+
             {/* Hero Section */}
             <section className="text-center mt-10 max-w-4xl" data-aos="fade-up">
                 <h1 className="text-4xl sm:text-5xl font-extrabold text-primary">

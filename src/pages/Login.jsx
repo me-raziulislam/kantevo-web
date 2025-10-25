@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuth } from "../context/AuthContext";
 import { FaLock, FaEnvelope } from "react-icons/fa";
+import SEO from "../components/SEO";
 
 const Login = () => {
     const [formData, setFormData] = useState({ email: "", password: "" });
@@ -58,6 +59,13 @@ const Login = () => {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-background px-4 transition-colors duration-300">
+
+            <SEO
+                title="Login"
+                description="Login to your Kantevo account to order food and manage your college canteen experience."
+                canonicalPath="/login"
+            />
+
             <div
                 className="bg-background text-text p-8 rounded-2xl shadow-lg w-full max-w-md border border-gray-200 dark:border-gray-700 transition-colors duration-300"
                 data-aos="fade-up"

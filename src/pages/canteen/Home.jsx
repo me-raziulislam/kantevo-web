@@ -3,6 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import { FaBox, FaClipboardList, FaCheckCircle, FaQrcode, FaChartLine } from "react-icons/fa";
 import { Html5Qrcode } from "html5-qrcode"; // ✅ direct Html5Qrcode for manual control
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import SEO from "../../components/SEO";
 
 // Simple skeleton component
 const SkeletonBox = ({ className }) => (
@@ -227,6 +228,13 @@ const Home = () => {
 
     return (
         <div className="p-6 bg-background text-text min-h-full">
+
+            <SEO
+                title="Canteen Dashboard"
+                description="Monitor canteen performance, view orders, and manage menus with Kantevo."
+                canonicalPath="/canteen/home"
+            />
+
             <h1 className="text-2xl font-semibold mb-6 text-text">
                 Welcome, {user?.name} 👋
             </h1>

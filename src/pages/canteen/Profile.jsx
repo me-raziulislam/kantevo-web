@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
+import SEO from "../../components/SEO";
 
 const Profile = () => {
     const { user, api } = useAuth(); // get centralized api instance
@@ -187,6 +188,13 @@ const Profile = () => {
 
     return (
         <div className="p-6 max-w-xl mx-auto bg-background border border-gray-200 dark:border-gray-700 text-text rounded shadow">
+
+            <SEO
+                title="Canteen Profile"
+                description="Update your canteen’s profile, UPI details, and contact information on Kantevo."
+                canonicalPath="/canteen/profile"
+            />
+
             <h1 className="text-xl font-semibold mb-6 text-text">My Profile</h1>
 
             {/* --- Owner Profile Form --- */}

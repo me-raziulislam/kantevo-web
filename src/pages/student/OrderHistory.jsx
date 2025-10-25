@@ -3,6 +3,7 @@ import dayjs from "dayjs";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
 import { QRCodeCanvas } from "qrcode.react"; // new import
+import SEO from "../../components/SEO";
 
 const LIMIT = 10;
 
@@ -131,6 +132,13 @@ const OrderHistory = () => {
 
     return (
         <div className="max-w-7xl mx-auto p-4 bg-background text-text min-h-full">
+
+            <SEO
+                title="Order History"
+                description="View your past canteen orders and track your transactions on Kantevo."
+                canonicalPath="/student/orders"
+            />
+
             <h1 className="text-2xl font-semibold mb-4 text-text">My Order History</h1>
 
             {/* Filters */}
