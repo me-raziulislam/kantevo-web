@@ -107,9 +107,6 @@ const Navbar = () => {
                             </>
                         ) : (
                             <>
-                                <span className="text-sm font-medium">
-                                    Hi, {user.name}
-                                </span>
                                 <button
                                     onClick={handleLogout}
                                     className="text-sm text-red-500 hover:text-red-700 font-medium"
