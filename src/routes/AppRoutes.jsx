@@ -1,11 +1,9 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ProtectedRoute from '../components/ProtectedRoute';
 
 import Home from '../pages/Home';
-import Login from '../pages/Login';
-import Register from '../pages/Register';
-import VerifyEmailOTP from '../pages/VerifyEmailOTP';
+import PartnerWithKantevo from '../pages/PartnerWithKantevo';
 import StudentDashboard from '../pages/StudentDashboard';
 
 // Import new pages
@@ -28,6 +26,18 @@ import ItemManager from '../pages/canteen/ItemManager';
 import OrderManager from '../pages/canteen/OrderManager';
 import CanteenProfile from '../pages/canteen/Profile';
 
+// NEW: Onboarding pages
+import StudentOnboardingLayout from '../pages/onboarding/student/StudentOnboardingLayout';
+import Step1StudentInfo from '../pages/onboarding/student/Step1StudentInfo';
+import Step2CollegeDetails from '../pages/onboarding/student/Step2CollegeDetails';
+import Step3StudentConfirm from '../pages/onboarding/student/Step3StudentConfirm';
+import PendingApproval from '../pages/onboarding/PendingApproval';
+
+import CanteenOnboardingLayout from '../pages/onboarding/canteen/CanteenOnboardingLayout';
+import Step1CanteenInfo from '../pages/onboarding/canteen/Step1CanteenInfo';
+import Step2MenuDetails from '../pages/onboarding/canteen/Step2MenuDetails';
+import Step3CanteenDocs from '../pages/onboarding/canteen/Step3CanteenDocs';
+
 // Legal pages
 import PrivacyPolicy from '../pages/PrivacyPolicy';
 import TermsOfUse from '../pages/TermsOfUse';
@@ -36,14 +46,49 @@ import RefundPolicy from '../pages/RefundPolicy';
 import ReturnPolicy from '../pages/ReturnPolicy';
 
 const AppRoutes = () => {
-    const { user } = useAuth();
+    const { user, hasCompletedOnboarding } = useAuth();
+    const completed = hasCompletedOnboarding(user);
+    const location = useLocation();
+
+    // Redirect unverified canteen owners ONLY after completing onboarding
+    if (
+        user?.role === 'canteenOwner' &&
+        user?.onboardingCompleted &&
+        !user?.adminVerified &&
+        location.pathname !== '/pending-approval'
+    ) {
+        return <Navigate to="/pending-approval" replace />;
+    }
+
+    // Resumable onboarding guard
+    if (
+        user &&
+        user.role !== 'admin' && // skip admins entirely
+        !completed &&
+        !location.pathname.startsWith('/onboarding') &&
+        !location.pathname.startsWith('/pending-approval')
+    ) {
+        const role = user.role === 'canteenOwner' ? 'canteen' : 'student';
+        const step = user.onboardingStep || 1;
+        return <Navigate to={`/onboarding/${role}/step${step}`} replace />;
+    }
+
+
+    // Existing onboarding guard logic
+    const onboardingGuard = (role) => {
+        if (!user) return <Navigate to="/" replace />;
+        const expect = role === 'canteen' ? 'canteenOwner' : 'student';
+        if (user.role !== expect) return <Navigate to="/" replace />;
+        if (completed) {
+            return <Navigate to={user.role === 'canteenOwner' ? '/canteen/home' : '/student/home'} replace />;
+        }
+        return null;
+    };
 
     return (
         <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/verify-email" element={<VerifyEmailOTP />} />
+            <Route path="/partner-with-us" element={<PartnerWithKantevo />} />
             <Route path="/payment/verify/:orderId" element={<PaymentVerification />} />
 
             {/* Legal */}
@@ -52,6 +97,31 @@ const AppRoutes = () => {
             <Route path="/refund-policy" element={<RefundPolicy />} />
             <Route path="/return-policy" element={<ReturnPolicy />} />
             <Route path="/about" element={<About />} />
+
+            {/* Pending Approval Page */}
+            <Route path="/pending-approval" element={<PendingApproval />} />
+
+            {/* Onboarding (Student) */}
+            <Route
+                path="/onboarding/student"
+                element={onboardingGuard('student') ?? <StudentOnboardingLayout />}
+            >
+                <Route path="step1" element={<Step1StudentInfo />} />
+                <Route path="step2" element={<Step2CollegeDetails />} />
+                <Route path="step3" element={<Step3StudentConfirm />} />
+                <Route index element={<Navigate to="step1" replace />} />
+            </Route>
+
+            {/* Onboarding (Canteen) */}
+            <Route
+                path="/onboarding/canteen"
+                element={onboardingGuard('canteen') ?? <CanteenOnboardingLayout />}
+            >
+                <Route path="step1" element={<Step1CanteenInfo />} />
+                <Route path="step2" element={<Step2MenuDetails />} />
+                <Route path="step3" element={<Step3CanteenDocs />} />
+                <Route index element={<Navigate to="step1" replace />} />
+            </Route>
 
             {/* Student */}
             <Route element={<ProtectedRoute allowedRoles={['student']} />}>
@@ -87,7 +157,24 @@ const AppRoutes = () => {
             </Route>
 
             {/* Fallback */}
-            <Route path="*" element={<Navigate to={user ? `/${user.role}/home` : '/login'} replace />} />
+            <Route
+                path="*"
+                element={
+                    user ? (
+                        user.role === "canteenOwner" ? (
+                            <Navigate to="/canteen/home" replace />
+                        ) : user.role === "student" ? (
+                            <Navigate to="/student/home" replace />
+                        ) : user.role === "admin" ? (
+                            <Navigate to="/admin/colleges" replace />
+                        ) : (
+                            <Navigate to="/" replace />
+                        )
+                    ) : (
+                        <Navigate to="/" replace />
+                    )
+                }
+            />
         </Routes>
     );
 };

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
-import Modal from '../../components/Modal';
+import ConfirmModal from '../../components/ConfirmModal';
 import SEO from "../../components/SEO";
 
 const CollegeManager = () => {
@@ -207,13 +207,13 @@ const CollegeManager = () => {
 
             {/* Delete Confirmation Modal using existing Modal component */}
             {deleteModalOpen && collegeToDelete && (
-                <Modal
+                <ConfirmModal
                     title="Confirm Delete"
                     onClose={() => setDeleteModalOpen(false)}
                     onConfirm={confirmDelete}
                 >
                     Are you sure you want to delete college "{collegeToDelete.name}"? This action cannot be undone.
-                </Modal>
+                </ConfirmModal>
             )}
         </div>
     );

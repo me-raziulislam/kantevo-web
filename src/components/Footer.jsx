@@ -54,13 +54,13 @@ const Footer = () => {
                         "@type": "SiteNavigationElement",
                         "position": 6,
                         "name": "For Students",
-                        "url": "https://kantevo.com/register"
+                        "url": "https://kantevo.com/"
                     },
                     {
                         "@type": "SiteNavigationElement",
                         "position": 7,
                         "name": "For Canteen Owners",
-                        "url": "https://kantevo.com/register"
+                        "url": "https://kantevo.com/partner-with-us"
                     }
                 ]
             }
@@ -138,12 +138,12 @@ const Footer = () => {
                             <h3 className="text-lg font-semibold text-text mb-3">For You</h3>
                             <ul className="space-y-2 text-sm text-text/80" itemScope itemType="https://schema.org/SiteNavigationElement">
                                 <li>
-                                    <Link to="/register" className="hover:text-primary transition" itemProp="url">
+                                    <Link to="/" className="hover:text-primary transition" itemProp="url">
                                         <span itemProp="name">For Students</span>
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link to="/register" className="hover:text-primary transition" itemProp="url">
+                                    <Link to="/partner-with-us" className="hover:text-primary transition" itemProp="url">
                                         <span itemProp="name">For Canteen Owners</span>
                                     </Link>
                                 </li>

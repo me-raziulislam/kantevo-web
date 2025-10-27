@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import AppRoutes from "./routes/AppRoutes";
@@ -9,6 +10,7 @@ import { Helmet } from "@dr.pogodin/react-helmet";
 
 function App() {
   const { loading } = useAuth();
+  const location = useLocation();
 
   useEffect(() => {
     AOS.init({
@@ -30,13 +32,15 @@ function App() {
   // const publicPaths = ["/", "/login", "/register", "/privacy-policy", "/terms-of-use", "/refund-policy", "/return-policy", "/about"];
   // const showFooter = publicPaths.includes(location.pathname);
 
-  // Show footer only on non dashboard pages
-  const hideFooter = location.pathname.startsWith("/student") ||
+  // Hide footer on dashboard routes
+  const hideFooter =
+    location.pathname.startsWith("/student") ||
     location.pathname.startsWith("/admin") ||
-    location.pathname.startsWith("/canteen");
+    location.pathname.startsWith("/canteen") ||
+    location.pathname.startsWith("/onboarding"); // also hide during onboarding
   const showFooter = !hideFooter;
 
-  // 🔹 Structured data (for sitelinks + search + navigation)
+  // Structured data (for sitelinks + search + navigation)
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebSite",
@@ -45,8 +49,8 @@ function App() {
     "potentialAction": {
       "@type": "SearchAction",
       "target": "https://kantevo.com/search?q={search_term_string}",
-      "query-input": "required name=search_term_string"
-    }
+      "query-input": "required name=search_term_string",
+    },
   };
 
   const siteNavigation = {
@@ -57,27 +61,45 @@ function App() {
         "@type": "SiteNavigationElement",
         "position": 1,
         "name": "Home",
-        "url": "https://kantevo.com/"
+        "url": "https://kantevo.com/",
       },
       {
         "@type": "SiteNavigationElement",
         "position": 2,
-        "name": "Login",
-        "url": "https://kantevo.com/login"
+        "name": "About",
+        "url": "https://kantevo.com/about",
       },
       {
         "@type": "SiteNavigationElement",
         "position": 3,
-        "name": "Register",
-        "url": "https://kantevo.com/register"
+        "name": "Partner with Us",
+        "url": "https://kantevo.com/partner-with-us",
       },
       {
         "@type": "SiteNavigationElement",
         "position": 4,
-        "name": "About",
-        "url": "https://kantevo.com/about"
-      }
-    ]
+        "name": "Privacy Policy",
+        "url": "https://kantevo.com/privacy-policy",
+      },
+      {
+        "@type": "SiteNavigationElement",
+        "position": 5,
+        "name": "Terms of Use",
+        "url": "https://kantevo.com/terms-of-use",
+      },
+      {
+        "@type": "SiteNavigationElement",
+        "position": 6,
+        "name": "Return Policy",
+        "url": "https://kantevo.com/return-policy",
+      },
+      {
+        "@type": "SiteNavigationElement",
+        "position": 7,
+        "name": "Refund Policy",
+        "url": "https://kantevo.com/refund-policy",
+      },
+    ],
   };
 
   return (
