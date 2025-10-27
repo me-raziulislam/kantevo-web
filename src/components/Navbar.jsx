@@ -21,17 +21,17 @@ const Navbar = () => {
     const loginInitialFocusRef = useRef(null);
 
     // ---------- Logout ----------
-    const handleLogout = () => {
-        logout();
-        toast.success("Logged out successfully", { autoClose: 2000 });
+    const handleLogout = async () => {
+        const prevRole = user?.role; // capture before logout clears state
+        await logout(); // ensure it finishes before redirect
 
-        // Navigate appropriately after logout
-        if (user?.role === "canteenOwner") {
-            navigate("/partner-with-us");
+        if (prevRole === "canteenOwner") {
+            navigate("/partner-with-us", { replace: true });
         } else {
-            navigate("/");
+            navigate("/", { replace: true });
         }
     };
+
 
     // ---------- Determine Logo Link Dynamically ----------
     const getLogoLink = () => {

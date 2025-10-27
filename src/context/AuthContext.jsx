@@ -1,6 +1,9 @@
 // context/AuthContext.jsx
 // Updated to support OTP-based registration/login + onboarding progress for both Students and Canteen Owners.
-// NEW: optimistic onboarding fields, saveOnboardingProgress(), completeOnboarding(), and helpers.
+// Secure refresh-token implementation.
+// Axios interceptor that refreshes access tokens silently (15m expiry, 30d refresh).
+// Logout calls backend to revoke refresh token.
+// Persistent redirect logic handled by AppRoutes.
 
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import axios from 'axios';
@@ -11,23 +14,24 @@ const AuthContext = createContext();
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
-// Create centralized axios instance
+// Centralized axios instance
 const api = axios.create({
     baseURL: `${SERVER_URL}/api`,
 });
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    const [token, setToken] = useState(null);
-    const [loading, setLoading] = useState(true); // for spinner
+    const [accessToken, setAccessToken] = useState(null);
+    const [refreshToken, setRefreshToken] = useState(null);
+    const [loading, setLoading] = useState(true);
     const socketRef = useRef(null);
+    const refreshPromiseRef = useRef(null); // 🔹 prevents multiple refresh calls
 
     /* ----------------------------------------------------
        🔹 Helpers (NEW)
     ---------------------------------------------------- */
     const ensureOnboardingShape = (u) => {
         if (!u) return u;
-        // default values if missing (until backend provides them)
         return {
             onboardingStep: typeof u.onboardingStep === 'number' ? u.onboardingStep : 1,
             onboardingCompleted: !!u.onboardingCompleted,
@@ -36,97 +40,145 @@ export const AuthProvider = ({ children }) => {
         };
     };
 
-    const persistUser = (u, t = token) => {
+    const persistUser = (u, aToken = accessToken, rToken = refreshToken) => {
         const shaped = ensureOnboardingShape(u);
         setUser(shaped);
-        if (t) setToken(t);
-        localStorage.setItem('user', JSON.stringify(shaped));
-        if (t) localStorage.setItem('token', t);
+        if (aToken) setAccessToken(aToken);
+        if (rToken) setRefreshToken(rToken);
+        localStorage.setItem('kantevo:user', JSON.stringify(shaped));
+        if (aToken) localStorage.setItem('kantevo:accessToken', aToken);
+        if (rToken) localStorage.setItem('kantevo:refreshToken', rToken);
     };
 
     /* ----------------------------------------------------
-       🔹 Store user + token in localStorage after login
+       🔹 Login + Logout
     ---------------------------------------------------- */
-    const login = (userData, token) => {
-        persistUser(userData, token);
+    const login = (userData, aToken, rToken) => {
+        persistUser(userData, aToken, rToken);
     };
 
-    /* ----------------------------------------------------
-       🔹 Logout — clears session + socket
-    ---------------------------------------------------- */
-    const logout = () => {
-        setUser(null);
-        setToken(null);
-        if (socketRef.current) {
-            socketRef.current.disconnect();
-            socketRef.current = null;
+    const logout = async () => {
+        const rToken = localStorage.getItem('kantevo:refreshToken');
+        try {
+            if (rToken) {
+                // tell the server to revoke this device's refresh token
+                await api.post('/auth/logout', { refreshToken: rToken });
+            }
+        } catch (_) {
+            // ignore network errors on logout; still clear client
+        } finally {
+            setUser(null);
+            setAccessToken(null);
+            setRefreshToken(null);
+            localStorage.removeItem('kantevo:user');
+            localStorage.removeItem('kantevo:accessToken');
+            localStorage.removeItem('kantevo:refreshToken');
+            if (socketRef.current) socketRef.current.disconnect();
+            toast.info('Logged out successfully');
         }
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
     };
 
+    // Logout from all devices
+    const logoutAllDevices = async () => {
+        try {
+            await api.post('/auth/logout-all'); // Authorization header is added by interceptor
+            // Also clear this device
+            await logout();
+        } catch (err) {
+            // Even if it fails, clear local session for safety
+            await logout();
+        }
+    };
+
+
     /* ----------------------------------------------------
-       🔹 Load user session from localStorage on startup
+       🔹 Load session from localStorage
     ---------------------------------------------------- */
     useEffect(() => {
-        const storedUser = localStorage.getItem('user');
-        const storedToken = localStorage.getItem('token');
+        const storedUser = localStorage.getItem('kantevo:user');
+        const storedAccess = localStorage.getItem('kantevo:accessToken');
+        const storedRefresh = localStorage.getItem('kantevo:refreshToken');
 
-        if (storedUser && storedToken) {
-            const parsed = JSON.parse(storedUser);
-            setUser(ensureOnboardingShape(parsed));
-            setToken(storedToken);
+        if (storedUser && storedAccess && storedRefresh) {
+            setUser(ensureOnboardingShape(JSON.parse(storedUser)));
+            setAccessToken(storedAccess);
+            setRefreshToken(storedRefresh);
         }
-
         setLoading(false);
     }, []);
 
     /* ----------------------------------------------------
-       🔹 SOCKET INITIALIZATION
+       🔹 Secure Token Refresh (silent renewal + rotation aware)
     ---------------------------------------------------- */
-    useEffect(() => {
-        if (!user) return;
-
-        const newSocket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5050', {
-            auth: { token },
-        });
-        socketRef.current = newSocket;
-
-        // Automatically join room based on user type
-        if (user.role === 'student') {
-            newSocket.emit('joinUser', user._id);
-        } else if (user.role === 'canteenOwner') {
-            const canteenId = user.canteen?._id || user.canteen;
-            if (canteenId) {
-                newSocket.emit('joinCanteen', canteenId);
-            }
+    const refreshAccessToken = async () => {
+        const rToken = localStorage.getItem('kantevo:refreshToken');
+        if (!rToken) {
+            await logout();
+            throw new Error('No refresh token');
         }
 
-        return () => {
-            newSocket.disconnect();
-            socketRef.current = null;
-        };
-    }, [user, token]);
+        // Avoid concurrent refreshes
+        if (refreshPromiseRef.current) return refreshPromiseRef.current;
+
+        refreshPromiseRef.current = api
+            .post('/auth/refresh-token', { refreshToken: rToken })
+            .then((res) => {
+                if (res.data.success) {
+                    const newAccessToken = res.data.accessToken;
+                    setAccessToken(newAccessToken);
+                    localStorage.setItem('kantevo:accessToken', newAccessToken);
+
+                    // 🔹 Rotation: server may also send back a new refresh token
+                    if (res.data.refreshToken) {
+                        const newRefreshToken = res.data.refreshToken;
+                        setRefreshToken(newRefreshToken);
+                        localStorage.setItem('kantevo:refreshToken', newRefreshToken);
+                    }
+
+                    return newAccessToken;
+                } else {
+                    throw new Error('Refresh failed');
+                }
+            })
+            .catch(async (err) => {
+                await logout();
+                throw err;
+            })
+            .finally(() => {
+                refreshPromiseRef.current = null;
+            });
+
+        return refreshPromiseRef.current;
+    };
 
     /* ----------------------------------------------------
-       🔹 AXIOS INTERCEPTORS
+       🔹 Axios interceptors with silent refresh retry
     ---------------------------------------------------- */
     useEffect(() => {
         const reqInterceptor = api.interceptors.request.use((config) => {
-            const token = localStorage.getItem('token');
-            if (token) {
-                config.headers.Authorization = `Bearer ${token}`;
-            }
+            const token = localStorage.getItem('kantevo:accessToken');
+            if (token) config.headers.Authorization = `Bearer ${token}`;
             return config;
         });
 
         const resInterceptor = api.interceptors.response.use(
             (response) => response,
-            (error) => {
-                if (error.response?.status === 401) {
-                    toast.error('Session expired. Please login again.');
-                    logout();
+            async (error) => {
+                const originalRequest = error.config;
+
+                // Token expired → attempt refresh
+                if (error.response?.status === 401 && !originalRequest._retry) {
+                    originalRequest._retry = true;
+                    try {
+                        const newToken = await refreshAccessToken();
+                        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                        return api(originalRequest); // retry original request
+                    } catch (err) {
+                        toast.error('Session expired. Please login again.');
+                        return Promise.reject(err);
+                    }
                 }
+
                 return Promise.reject(error);
             }
         );
@@ -135,16 +187,35 @@ export const AuthProvider = ({ children }) => {
             api.interceptors.request.eject(reqInterceptor);
             api.interceptors.response.eject(resInterceptor);
         };
-    }, []);
+    }, [refreshToken]); // re-bind when refresh token changes
 
     /* ----------------------------------------------------
-       🔹 REGISTER (Step 1) - Send OTP
-       Minimal signup: { name, email, userType }
+       🔹 SOCKET IO INIT (same)
+    ---------------------------------------------------- */
+    useEffect(() => {
+        if (!user) return;
+
+        const newSocket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5050', {
+            auth: { token: accessToken },
+        });
+        socketRef.current = newSocket;
+
+        if (user.role === 'student') newSocket.emit('joinUser', user._id);
+        else if (user.role === 'canteenOwner') {
+            const canteenId = user.canteen?._id || user.canteen;
+            if (canteenId) newSocket.emit('joinCanteen', canteenId);
+        }
+
+        return () => newSocket.disconnect();
+    }, [user, accessToken]);
+
+    /* ----------------------------------------------------
+       🔹 Registration + Login (now receive both tokens)
     ---------------------------------------------------- */
     const registerUser = async (name, email, userType) => {
         try {
             const res = await api.post('/auth/register', { name, email, userType });
-            toast.success(res.data.msg || 'OTP sent to your email.');
+            toast.success(res.data.msg || 'OTP sent.');
             return { success: true, userType };
         } catch (err) {
             const msg = err.response?.data?.msg || 'Failed to send OTP.';
@@ -153,18 +224,11 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    /* ----------------------------------------------------
-       🔹 VERIFY EMAIL OTP (Step 2)
-       Marks user as verified and logs them in
-    ---------------------------------------------------- */
     const verifyEmailOTP = async (email, otp) => {
         try {
             const res = await api.post('/auth/verify-email-otp', { email, otp });
-            const { user, token } = res.data.data;
-
-            // Store session (shape + persist)
-            login(user, token);
-
+            const { user, accessToken, refreshToken } = res.data.data;
+            login(user, accessToken, refreshToken);
             toast.success('Email verified successfully!');
             return { success: true, user };
         } catch (err) {
@@ -174,13 +238,10 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    /* ----------------------------------------------------
-       🔹 LOGIN (Step 1) - Send OTP
-    ---------------------------------------------------- */
     const sendLoginOTP = async (email) => {
         try {
             const res = await api.post('/auth/login/send-otp', { email });
-            toast.success(res.data.msg || 'OTP sent to your email.');
+            toast.success(res.data.msg || 'OTP sent.');
             return { success: true, role: res.data.data?.role };
         } catch (err) {
             const msg = err.response?.data?.msg || 'Failed to send login OTP.';
@@ -189,49 +250,28 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    /* ----------------------------------------------------
-       🔹 LOGIN (Step 2) - Verify OTP
-       On success, saves token + user
-    ---------------------------------------------------- */
     const verifyLoginOTP = async (email, otp) => {
         try {
             const res = await api.post('/auth/login/verify-otp', { email, otp });
-            const { user, token } = res.data.data;
-            login(user, token);
+            const { user, accessToken, refreshToken } = res.data.data;
+            login(user, accessToken, refreshToken);
             toast.success('Login successful!');
 
-            // Handle redirect conditions correctly
-            if (user.role === 'admin') {
-                window.location.href = '/admin/colleges';
-                return { success: true, user };
-            }
-
-            if (user.role === 'canteenOwner') {
-                if (!user.onboardingCompleted) {
-                    const step = user.onboardingStep || 1;
-                    window.location.href = `/onboarding/canteen/step${step}`;
-                    return { success: true, user };
-                }
-
-                if (!user.adminVerified) {
-                    window.location.href = '/pending-approval';
-                    return { success: true, user };
-                }
-
-                window.location.href = '/canteen/home';
-                return { success: true, user };
-            }
-
-            // Students
-            if (!user.onboardingCompleted) {
-                const step = user.onboardingStep || 1;
-                window.location.href = `/onboarding/student/step${step}`;
-            } else {
-                window.location.href = '/student/home';
-            }
+            // Redirect by role and onboarding state
+            window.location.href =
+                user.role === 'admin'
+                    ? '/admin/colleges'
+                    : user.role === 'canteenOwner'
+                        ? !user.onboardingCompleted
+                            ? `/onboarding/canteen/step${user.onboardingStep || 1}`
+                            : !user.adminVerified
+                                ? '/pending-approval'
+                                : '/canteen/home'
+                        : !user.onboardingCompleted
+                            ? `/onboarding/student/step${user.onboardingStep || 1}`
+                            : '/student/home';
 
             return { success: true, user };
-
         } catch (err) {
             const msg = err.response?.data?.msg || 'Invalid or expired OTP.';
             toast.error(msg);
@@ -240,8 +280,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     /* ----------------------------------------------------
-       🔹 ONBOARDING HELPERS (NEW)
-       Persist to API when available; always keep local user in sync for UX.
+       🔹 Onboarding + Helper Functions (same)
     ---------------------------------------------------- */
     const saveOnboardingProgress = async (step, data = {}) => {
         if (!user) return;
@@ -249,15 +288,9 @@ export const AuthProvider = ({ children }) => {
         try {
             const res = await api.put(`/${roleKey}/onboarding`, { step, data, completed: false });
             const updated = res.data.user || res.data.owner || user;
-            // keep step updated locally but don't mark completed
-            const merged = { ...updated, onboardingStep: step, onboardingCompleted: false };
-            persistUser(merged);
-            return merged;
+            persistUser({ ...updated, onboardingStep: step });
         } catch (err) {
-            console.error("Onboarding save error:", err);
-            const msg = err.response?.data?.message || "Failed to save onboarding progress.";
-            toast.error(msg);
-            throw err;
+            toast.error('Failed to save onboarding progress.');
         }
     };
 
@@ -271,41 +304,29 @@ export const AuthProvider = ({ children }) => {
                 completed: true,
             });
             const updated = res.data.user || res.data.owner || user;
-            const merged = { ...updated, onboardingCompleted: true };
-            persistUser(merged);
-            toast.success("Onboarding completed!");
-        } catch (err) {
-            console.error("Complete onboarding error:", err);
-            toast.error(err.response?.data?.message || "Failed to complete onboarding.");
+            persistUser({ ...updated, onboardingCompleted: true });
+            toast.success('Onboarding completed!');
+        } catch {
+            toast.error('Failed to complete onboarding.');
         }
     };
 
-    /* ----------------------------------------------------
-       🔹 CHECK IF USER HAS COMPLETED ONBOARDING
-       Helps decide where to redirect post-login
-    ---------------------------------------------------- */
-    const hasCompletedOnboarding = (u) => {
-        const usr = u || user;
-        if (!usr) return false;
-        return !!usr.onboardingCompleted; // only rely on this flag now
-    };
+    const hasCompletedOnboarding = (u) => !!(u || user)?.onboardingCompleted;
 
-    /* ----------------------------------------------------
-       🔹 EXPORT PROVIDER
-    ---------------------------------------------------- */
     return (
         <AuthContext.Provider
             value={{
                 user,
-                token,
+                accessToken,
+                refreshToken,
                 login,
                 logout,
+                logoutAllDevices,
                 registerUser,
                 verifyEmailOTP,
                 sendLoginOTP,
                 verifyLoginOTP,
                 hasCompletedOnboarding,
-                // NEW
                 saveOnboardingProgress,
                 completeOnboarding,
                 isLoggedIn: !!user,

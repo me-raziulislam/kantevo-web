@@ -129,7 +129,6 @@ const Footer = () => {
                                         <span itemProp="name">Refund Policy</span>
                                     </Link>
                                 </li>
-                                {/* <li><Link to="/disclaimer" className="hover:text-primary transition">Disclaimer</Link></li> */}
                             </ul>
                         </div>
 
@@ -143,12 +142,17 @@ const Footer = () => {
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link to="/partner-with-us" className="hover:text-primary transition" itemProp="url">
+                                    {/* Open in new tab */}
+                                    <Link
+                                        to="/partner-with-us"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="hover:text-primary transition"
+                                        itemProp="url"
+                                    >
                                         <span itemProp="name">For Canteen Owners</span>
                                     </Link>
                                 </li>
-                                {/* <li><Link to="/help" className="hover:text-primary transition">Help Center</Link></li>
-                                <li><Link to="/faqs" className="hover:text-primary transition">FAQs</Link></li> */}
                             </ul>
                         </div>
                     </div>
@@ -178,8 +182,6 @@ const Footer = () => {
                             <Link to="/refund-policy" className="hover:text-primary transition" itemProp="url">
                                 <span itemProp="name">Refund Policy</span>
                             </Link>
-                            {/* <span>|</span>
-                            <Link to="/disclaimer" className="hover:text-primary transition">Disclaimer</Link> */}
                         </div>
                     </div>
                 </div>

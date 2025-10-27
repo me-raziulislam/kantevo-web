@@ -50,6 +50,18 @@ const AppRoutes = () => {
     const completed = hasCompletedOnboarding(user);
     const location = useLocation();
 
+    // Auto Redirect Persisted Users
+    if (user && location.pathname === "/") {
+        if (user.role === "student") return <Navigate to="/student/home" replace />;
+        if (user.role === "canteenOwner") return <Navigate to="/canteen/home" replace />;
+        if (user.role === "admin") return <Navigate to="/admin/colleges" replace />;
+    }
+
+    // If not logged in but trying to access restricted route
+    if (!user && location.pathname === "/pending-approval") {
+        return <Navigate to="/partner-with-us" replace />;
+    }
+
     // Redirect unverified canteen owners ONLY after completing onboarding
     if (
         user?.role === 'canteenOwner' &&
@@ -98,8 +110,13 @@ const AppRoutes = () => {
             <Route path="/return-policy" element={<ReturnPolicy />} />
             <Route path="/about" element={<About />} />
 
-            {/* Pending Approval Page */}
-            <Route path="/pending-approval" element={<PendingApproval />} />
+            {/* Pending Approval Page — only for canteen owners */}
+            <Route
+                element={<ProtectedRoute allowedRoles={['canteenOwner']} />}
+            >
+                <Route path="/pending-approval" element={<PendingApproval />} />
+            </Route>
+
 
             {/* Onboarding (Student) */}
             <Route

@@ -11,8 +11,7 @@ const CanteenDashboard = () => {
 
     const handleLogout = () => {
         logout();
-        toast.success("Logged out successfully");
-        navigate('/login');
+        navigate('/partner-with-us');
     };
 
     const navLinks = [
