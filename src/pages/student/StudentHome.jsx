@@ -1,3 +1,4 @@
+// src/pages/student/StudentHome.jsx
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
@@ -46,20 +47,24 @@ const StudentHome = () => {
 
             <section>
                 <h2 className="text-lg font-semibold mb-4">Canteens Near You</h2>
+
                 {loading ? (
                     <p className="text-text/70">Loading canteens...</p>
                 ) : canteens.length ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         {canteens.map((c) => (
                             <CanteenCard
                                 key={c._id}
                                 canteen={c}
                                 onSelect={onSelectCanteen}
+                                detailed
                             />
                         ))}
                     </div>
                 ) : (
-                    <p className="text-text/70">No canteens found in your college.</p>
+                    <p className="text-text/70">
+                        No canteens found in your college.
+                    </p>
                 )}
             </section>
         </div>

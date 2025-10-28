@@ -54,7 +54,7 @@ const Home = () => {
                     </p>
 
                     {/* Buttons */}
-                    <div
+                    {/* <div
                         className="mt-8 flex flex-wrap justify-center gap-4"
                         data-aos="zoom-in"
                         data-aos-delay="200"
@@ -72,7 +72,7 @@ const Home = () => {
                         >
                             Register
                         </button>
-                    </div>
+                    </div> */}
                 </div>
             </section>
 
