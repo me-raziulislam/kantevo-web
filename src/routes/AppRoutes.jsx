@@ -1,13 +1,15 @@
+// src/routes/AppRoutes.jsx
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ProtectedRoute from '../components/ProtectedRoute';
 
 import Home from '../pages/Home';
 import PartnerWithKantevo from '../pages/PartnerWithKantevo';
-import StudentDashboard from '../pages/StudentDashboard';
+import StudentLayout from '../pages/student/StudentLayout';
 
 // Import new pages
 import StudentHome from '../pages/student/StudentHome';
+import CanteenPage from "../pages/student/CanteenPage";
 import Cart from '../pages/student/Cart';
 import OrderHistory from '../pages/student/OrderHistory';
 import Profile from '../pages/student/Profile';
@@ -142,9 +144,9 @@ const AppRoutes = () => {
 
             {/* Student */}
             <Route element={<ProtectedRoute allowedRoles={['student']} />}>
-                <Route path="/student" element={<StudentDashboard />}>
+                <Route path="/student" element={<StudentLayout />}>
                     <Route path="home" element={<StudentHome />} />
-                    <Route path="home/:canteenId" element={<StudentHome />} />
+                    <Route path="canteen/:canteenId" element={<CanteenPage />} />
                     <Route path="cart" element={<Cart />} />
                     <Route path="orders" element={<OrderHistory />} />
                     <Route path="profile" element={<Profile />} />

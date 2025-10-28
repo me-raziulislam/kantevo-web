@@ -1,4 +1,6 @@
+// pages/student/Cart.jsx
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
 import SEO from "../../components/SEO";
@@ -9,7 +11,7 @@ const CANTEEN_CHARGE = 0; // flat ₹
 const PLATFORM_FEE = 1; // flat ₹
 
 const Cart = () => {
-    const { user, api, socket } = useAuth(); // ✅ added socket from context
+    const { user, api, socket } = useAuth();
     const [cart, setCart] = useState([]);
     const [loading, setLoading] = useState(false);
     const [loadingItem, setLoadingItem] = useState(null);
@@ -38,11 +40,6 @@ const Cart = () => {
     useEffect(() => {
         if (!socket) return;
 
-        // const handleCartUpdate = (updatedCart) => {
-        //     setCart(updatedCart.items || []);
-        //     toast.info("Cart updated in real-time");
-        // };
-
         const handleNewOrder = (order) => {
             toast.success(`🎉 New order placed! Token: ${order.token}`);
         };
@@ -52,20 +49,15 @@ const Cart = () => {
         };
 
         const handlePaymentUpdate = ({ orderId, paymentStatus }) => {
-            if (paymentStatus === "success") {
-                toast.success(`✅ Payment successful for order #${orderId}`);
-            } else {
-                toast.error(`❌ Payment failed for order #${orderId}`);
-            }
+            if (paymentStatus === "success") toast.success(`✅ Payment successful for order #${orderId}`);
+            else toast.error(`❌ Payment failed for order #${orderId}`);
         };
 
-        // socket.on("cartUpdated", handleCartUpdate);
         socket.on("newOrder", handleNewOrder);
         socket.on("orderStatusUpdated", handleOrderStatus);
         socket.on("paymentUpdated", handlePaymentUpdate);
 
         return () => {
-            // socket.off("cartUpdated", handleCartUpdate);
             socket.off("newOrder", handleNewOrder);
             socket.off("orderStatusUpdated", handleOrderStatus);
             socket.off("paymentUpdated", handlePaymentUpdate);
@@ -131,7 +123,7 @@ const Cart = () => {
             return;
         }
 
-        const canteenIds = cart.map(ci => ci.item.canteen?._id?.toString());
+        const canteenIds = cart.map((ci) => ci.item.canteen?._id?.toString());
         const uniqueCanteens = [...new Set(canteenIds)];
         if (uniqueCanteens.length !== 1) {
             toast.error("All items must be from the same canteen to checkout");
@@ -139,9 +131,9 @@ const Cart = () => {
         }
         const canteenId = uniqueCanteens[0];
 
-        const orderItems = cart.map(ci => ({
+        const orderItems = cart.map((ci) => ({
             item: ci.item._id,
-            quantity: ci.quantity
+            quantity: ci.quantity,
         }));
 
         setProcessing(true);
@@ -152,7 +144,7 @@ const Cart = () => {
                 canteen: canteenId,
                 items: orderItems,
                 totalPrice: Number(grandTotal),
-                paymentMethod
+                paymentMethod,
             });
 
             if (paymentMethod === "offline") {
@@ -169,19 +161,11 @@ const Cart = () => {
                     amount: Number(grandTotal),
                 });
 
-                if (paymentRes.data?.redirectUrl) {
-                    // Step 3: Redirect user to PhonePe hosted checkout page
-                    window.location.href = paymentRes.data.redirectUrl;
-                } else {
-                    toast.error("Failed to start payment, please try again.");
-                }
+                if (paymentRes.data?.redirectUrl) window.location.href = paymentRes.data.redirectUrl;
+                else toast.error("Failed to start payment, please try again.");
             }
         } catch (err) {
-            // ✅ Show exact backend message if available
-            const msg =
-                err.response?.data?.error ||
-                err.response?.data?.message ||
-                "Order creation failed";
+            const msg = err.response?.data?.error || err.response?.data?.message || "Order creation failed";
             toast.error(msg);
         } finally {
             setProcessing(false);
@@ -189,20 +173,25 @@ const Cart = () => {
     };
 
     return (
-        <div className="p-6 space-y-6 max-w-4xl mx-auto bg-background text-text transition-colors duration-300">
-
+        <div className="max-w-5xl mx-auto p-6 space-y-8 bg-background text-text transition-colors duration-300">
             <SEO
                 title="Your Cart"
                 description="Review your selected canteen items before checkout and payment on Kantevo."
                 canonicalPath="/student/cart"
             />
 
-            <h1 className="text-2xl font-semibold text-text">{user?.name}'s Cart 🛒</h1>
+            <h1 className="text-2xl font-bold text-primary">Cart 🛒</h1>
 
             {loading ? (
-                <p className="text-text/80">Loading cart...</p>
+                <p className="text-text/70">Loading cart...</p>
             ) : cart.length === 0 ? (
-                <p className="text-text/80">Your cart is empty.</p>
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-center text-text/70 p-10 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm"
+                >
+                    Your cart is empty.
+                </motion.div>
             ) : (
                 <>
                     {/* Payment method selection */}
@@ -213,7 +202,6 @@ const Cart = () => {
                                 value="offline"
                                 checked={paymentMethod === "offline"}
                                 onChange={(e) => setPaymentMethod(e.target.value)}
-                                className="cursor-pointer"
                             />
                             Offline Payment
                         </label>
@@ -223,7 +211,6 @@ const Cart = () => {
                                 value="online"
                                 checked={paymentMethod === "online"}
                                 onChange={(e) => setPaymentMethod(e.target.value)}
-                                className="cursor-pointer"
                             />
                             Online Payment
                         </label>
@@ -232,54 +219,68 @@ const Cart = () => {
                     {/* Cart Items */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         {cart.map((cartItem) => (
-                            <div
+                            <motion.div
                                 key={cartItem.item._id}
-                                className="border border-gray-300 dark:border-gray-600 rounded-2xl p-4 flex flex-col justify-between shadow-sm bg-background text-text transition-colors duration-300"
+                                layout
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -8 }}
+                                className="flex flex-col border border-gray-200 dark:border-gray-700 rounded-2xl p-4 bg-background shadow-sm hover:shadow-md transition"
                             >
                                 <div className="flex gap-4">
                                     <img
                                         src={cartItem.item.image}
                                         alt={cartItem.item.name}
-                                        className="w-20 h-20 object-cover rounded"
+                                        className="w-24 h-24 object-cover rounded-xl"
                                     />
-                                    <div>
-                                        <h3 className="font-bold text-primary">{cartItem.item.name}</h3>
-                                        <p className="text-text/70">Price: ₹{cartItem.item.price.toFixed(2)}</p>
-                                        <p className="text-text/70">Subtotal: ₹{(cartItem.item.price * cartItem.quantity).toFixed(2)}</p>
+                                    <div className="flex flex-col justify-between">
+                                        <h3 className="font-semibold text-base text-primary">{cartItem.item.name}</h3>
+                                        <p className="text-sm text-text/70">
+                                            Price: ₹{cartItem.item.price.toFixed(2)}
+                                        </p>
+                                        <p className="text-sm text-text/70">
+                                            Subtotal: ₹{(cartItem.item.price * cartItem.quantity).toFixed(2)}
+                                        </p>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-2 mt-2">
+                                {/* Quantity controls */}
+                                <div className="flex items-center gap-2 mt-3 self-center">
                                     <button
                                         onClick={() => handleQuantityChange(cartItem.item._id, cartItem.quantity - 1)}
-                                        className="px-3 py-1 bg-gray-300 rounded disabled:opacity-50 transition-colors duration-300 cursor-pointer"
+                                        className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 font-bold text-primary hover:bg-primary/10 disabled:opacity-40"
                                         disabled={loadingItem === cartItem.item._id}
                                     >
-                                        -
+                                        −
                                     </button>
-                                    <span className="w-6 text-center">{cartItem.quantity}</span>
+                                    <span className="font-semibold">{cartItem.quantity}</span>
                                     <button
                                         onClick={() => handleQuantityChange(cartItem.item._id, cartItem.quantity + 1)}
-                                        className="px-3 py-1 bg-gray-300 rounded disabled:opacity-50 transition-colors duration-300 cursor-pointer"
+                                        className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 font-bold text-primary hover:bg-primary/10 disabled:opacity-40"
                                         disabled={loadingItem === cartItem.item._id}
                                     >
                                         +
                                     </button>
                                 </div>
 
+                                {/* Remove button */}
                                 <button
                                     onClick={() => handleRemoveItem(cartItem.item._id)}
-                                    className="mt-4 bg-red-600 hover:bg-red-700 text-white px-4 py-1 rounded disabled:opacity-50 transition-colors duration-300"
+                                    className="mt-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-full text-sm disabled:opacity-50 transition"
                                     disabled={loadingItem === cartItem.item._id}
                                 >
                                     Remove
                                 </button>
-                            </div>
+                            </motion.div>
                         ))}
                     </div>
 
                     {/* Bill Summary */}
-                    <div className="mt-8 p-4 rounded-lg border border-gray-300 dark:border-gray-600 shadow-sm bg-background text-text transition-colors duration-300">
+                    <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-6 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm bg-background"
+                    >
                         <div
                             className={`mb-3 p-2 rounded text-sm font-medium text-center ${paymentMethod === "offline"
                                 ? "bg-yellow-100 text-yellow-800"
@@ -290,23 +291,24 @@ const Cart = () => {
                                 ? "You will pay at the canteen counter"
                                 : "You will pay online securely"}
                         </div>
-                        <h2 className="text-xl font-semibold text-primary">Bill Summary</h2>
-                        <div className="space-y-1 mt-2 text-text">
+
+                        <h2 className="text-xl font-bold text-primary mb-2">Bill Summary</h2>
+                        <div className="space-y-1 text-sm text-text/80">
                             <p>Item Total: ₹{itemTotal.toFixed(2)}</p>
                             <p>GST ({GST_PERCENT}%): ₹{gstAmount.toFixed(2)}</p>
                             <p>Canteen Charges: ₹{CANTEEN_CHARGE.toFixed(2)}</p>
                             <p>Platform Fee: ₹{PLATFORM_FEE.toFixed(2)}</p>
-                            <h3 className="text-lg font-bold mt-2 border-t border-gray-300 dark:border-gray-600 pt-2 text-primary">
-                                To Pay: ₹{grandTotal.toFixed(2)}
-                            </h3>
                         </div>
-                    </div>
+                        <h3 className="text-lg font-bold mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 text-primary">
+                            To Pay: ₹{grandTotal.toFixed(2)}
+                        </h3>
+                    </motion.div>
 
                     {/* Actions */}
-                    <div className="flex justify-between items-center mt-8 border-t border-gray-300 dark:border-gray-600 pt-4">
+                    <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
                         <button
                             onClick={handleClearCart}
-                            className="bg-red-600 text-white px-5 py-2 rounded hover:bg-red-700 disabled:opacity-50 transition-colors duration-300"
+                            className="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-full font-semibold transition"
                             disabled={clearing || processing}
                         >
                             {clearing ? "Clearing..." : "Clear Cart"}
@@ -314,7 +316,7 @@ const Cart = () => {
 
                         <button
                             onClick={handleCheckout}
-                            className="bg-green-600 text-white px-5 py-2 rounded hover:bg-green-700 disabled:opacity-50 transition-colors duration-300"
+                            className="bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-full font-semibold transition"
                             disabled={processing || clearing}
                         >
                             {processing

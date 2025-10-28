@@ -103,6 +103,7 @@ export const AuthProvider = ({ children }) => {
             setUser(ensureOnboardingShape(JSON.parse(storedUser)));
             setAccessToken(storedAccess);
             setRefreshToken(storedRefresh);
+            api.defaults.headers.common.Authorization = `Bearer ${storedAccess}`;
         }
         setLoading(false);
     }, []);
@@ -150,6 +151,17 @@ export const AuthProvider = ({ children }) => {
 
         return refreshPromiseRef.current;
     };
+
+    /* ----------------------------------------------------
+   🔹 Keep axios Authorization header always in sync
+    ---------------------------------------------------- */
+    useEffect(() => {
+        if (accessToken) {
+            api.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
+        } else {
+            delete api.defaults.headers.common.Authorization;
+        }
+    }, [accessToken]);
 
     /* ----------------------------------------------------
        🔹 Axios interceptors with silent refresh retry

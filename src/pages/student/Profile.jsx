@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
 import SEO from "../../components/SEO";
+import { motion } from "framer-motion";
 
 const Profile = () => {
     const { user, api } = useAuth(); // centralized auth + api instance
@@ -56,7 +57,6 @@ const Profile = () => {
             setForm((prev) => ({ ...prev, [name]: value }));
         }
     };
-
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
@@ -126,24 +126,31 @@ const Profile = () => {
         );
 
     return (
-        <div className="p-6 max-w-xl mx-auto bg-background border border-gray-200 dark:border-gray-700 text-text rounded shadow">
-
+        <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+            className="max-w-2xl"
+        >
             <SEO
-                title="Your Profile"
+                title="Profile"
                 description="Manage your account information, college details, and preferences in Kantevo."
                 canonicalPath="/student/profile"
             />
 
-            <h1 className="text-xl font-semibold mb-6 text-text">My Profile</h1>
+            <h1 className="text-2xl md:text-3xl font-extrabold text-primary mb-4">My Profile</h1>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="flex items-center space-x-4">
-                    <div className="w-20 h-20 rounded-full overflow-hidden border border-gray-300 dark:border-gray-600">
+            <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm bg-background">
+                <div className="flex items-center gap-4">
+                    <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-primary shadow">
                         <img
                             src={
                                 preview ||
                                 profile?.profilePicture ||
-                                "https://via.placeholder.com/150?text=Profile"
+                                `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(
+                                    profile?.name || user?.name || "user"
+                                )}`
                             }
                             alt="Profile"
                             className="w-full h-full object-cover"
@@ -181,7 +188,7 @@ const Profile = () => {
                         type="text"
                         value={form.name}
                         onChange={handleChange}
-                        className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-background text-text focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2 bg-background text-text focus:outline-none focus:ring-2 focus:ring-primary"
                         required
                     />
                 </div>
@@ -203,7 +210,7 @@ const Profile = () => {
                         pattern="\d{10}"
                         maxLength={10}
                         minLength={10}
-                        className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-background text-text focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2 bg-background text-text focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                 </div>
 
@@ -219,7 +226,7 @@ const Profile = () => {
                         name="college"
                         value={form.college}
                         onChange={handleChange}
-                        className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-background text-text focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2 bg-background text-text focus:outline-none focus:ring-2 focus:ring-primary"
                     >
                         <option value="">-- Select a College --</option>
                         {colleges.map((college) => (
@@ -244,22 +251,22 @@ const Profile = () => {
                         value={form.about}
                         onChange={handleChange}
                         placeholder="About you"
-                        className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 resize-none bg-background text-text focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2 resize-none bg-background text-text focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                 </div>
 
-                <button
-                    type="submit"
-                    disabled={saving}
-                    className={`w-full py-2 rounded text-white ${saving
-                        ? "bg-primary/50 cursor-not-allowed"
-                        : "bg-primary hover:bg-primary-dark"
-                        } transition`}
-                >
-                    {saving ? "Saving..." : "Save Changes"}
-                </button>
+                <div className="flex justify-end">
+                    <button
+                        type="submit"
+                        disabled={saving}
+                        className={`px-6 py-2 rounded-full text-white ${saving ? "bg-primary/60 cursor-not-allowed" : "bg-primary hover:brightness-110"
+                            } transition`}
+                    >
+                        {saving ? "Saving..." : "Save Changes"}
+                    </button>
+                </div>
             </form>
-        </div>
+        </motion.div>
     );
 };
 

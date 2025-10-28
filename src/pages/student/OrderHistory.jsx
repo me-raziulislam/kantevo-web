@@ -1,4 +1,6 @@
+// pages/student/OrderHistory.jsx
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { motion } from "framer-motion";
 import dayjs from "dayjs";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
@@ -11,7 +13,7 @@ const STATUS_OPTIONS = ["pending", "preparing", "ready", "completed", "cancelled
 const PAYMENT_OPTIONS = ["pending", "paid", "failed"];
 
 const OrderHistory = () => {
-    const { user, api, socket } = useAuth(); // ✅ use socket from context
+    const { user, api, socket } = useAuth(); // use socket from context
 
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -109,7 +111,6 @@ const OrderHistory = () => {
         };
     }, [socket]);
 
-
     const handleSubmit = (e) => {
         e.preventDefault();
         lastCreatedAtRef.current = null;
@@ -131,31 +132,30 @@ const OrderHistory = () => {
     };
 
     return (
-        <div className="max-w-7xl mx-auto p-4 bg-background text-text min-h-full">
-
+        <div className="max-w-6xl mx-auto p-6 bg-background text-text min-h-full space-y-8 transition-colors duration-300">
             <SEO
                 title="Order History"
                 description="View your past canteen orders and track your transactions on Kantevo."
                 canonicalPath="/student/orders"
             />
 
-            <h1 className="text-2xl font-semibold mb-4 text-text">My Order History</h1>
+            <h1 className="text-2xl font-bold text-primary">Order History 📦</h1>
 
             {/* Filters */}
             <form
                 onSubmit={handleSubmit}
-                className="bg-background border border-gray-300 dark:border-gray-600 p-4 rounded shadow mb-6 flex flex-col md:flex-row md:items-end md:space-x-4 space-y-4 md:space-y-0"
+                className="border border-gray-200 dark:border-gray-700 bg-background rounded-2xl shadow-sm p-5 flex flex-col md:flex-row md:items-end md:gap-6 gap-4"
             >
                 {/* Status filter */}
                 <div className="flex flex-col">
-                    <label htmlFor="status" className="mb-1 font-medium text-text/80">
+                    <label htmlFor="status" className="text-sm font-medium text-text/80 mb-1">
                         Status
                     </label>
                     <select
                         id="status"
                         value={status}
                         onChange={(e) => setStatus(e.target.value)}
-                        className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 w-40 bg-background text-text focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 w-40 bg-background focus:ring-2 focus:ring-primary"
                     >
                         <option value="">All</option>
                         {STATUS_OPTIONS.map((opt) => (
@@ -168,14 +168,14 @@ const OrderHistory = () => {
 
                 {/* Payment status filter */}
                 <div className="flex flex-col">
-                    <label htmlFor="paymentStatus" className="mb-1 font-medium text-text/80">
-                        Payment Status
+                    <label htmlFor="paymentStatus" className="text-sm font-medium text-text/80 mb-1">
+                        Payment
                     </label>
                     <select
                         id="paymentStatus"
                         value={paymentStatus}
                         onChange={(e) => setPaymentStatus(e.target.value)}
-                        className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 w-40 bg-background text-text focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 w-40 bg-background focus:ring-2 focus:ring-primary"
                     >
                         <option value="">All</option>
                         {PAYMENT_OPTIONS.map((opt) => (
@@ -186,46 +186,44 @@ const OrderHistory = () => {
                     </select>
                 </div>
 
-                {/* Date from */}
+                {/* Date filters */}
                 <div className="flex flex-col">
-                    <label htmlFor="dateFrom" className="mb-1 font-medium text-text/80">
-                        Date From
+                    <label htmlFor="dateFrom" className="text-sm font-medium text-text/80 mb-1">
+                        From
                     </label>
                     <input
                         id="dateFrom"
                         type="date"
                         value={dateFrom}
                         onChange={(e) => setDateFrom(e.target.value)}
-                        className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 w-40 bg-background text-text focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 w-40 bg-background focus:ring-2 focus:ring-primary"
                     />
                 </div>
-
-                {/* Date to */}
                 <div className="flex flex-col">
-                    <label htmlFor="dateTo" className="mb-1 font-medium text-text/80">
-                        Date To
+                    <label htmlFor="dateTo" className="text-sm font-medium text-text/80 mb-1">
+                        To
                     </label>
                     <input
                         id="dateTo"
                         type="date"
                         value={dateTo}
                         onChange={(e) => setDateTo(e.target.value)}
-                        className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 w-40 bg-background text-text focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 w-40 bg-background focus:ring-2 focus:ring-primary"
                     />
                 </div>
 
                 {/* Buttons */}
-                <div className="flex space-x-2">
+                <div className="flex gap-3">
                     <button
                         type="submit"
-                        className="bg-primary text-white px-4 py-2 rounded hover:bg-primary-dark transition"
+                        className="bg-primary text-white px-5 py-2 rounded-lg hover:bg-primary-dark transition"
                     >
                         Search
                     </button>
                     <button
                         type="button"
                         onClick={clearFilters}
-                        className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition"
+                        className="bg-gray-200 dark:bg-gray-800 text-text px-5 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700 transition"
                     >
                         Clear
                     </button>
@@ -233,81 +231,100 @@ const OrderHistory = () => {
             </form>
 
             {/* Error */}
-            {error && (
-                <div className="mb-4 text-red-500 font-semibold text-center">{error}</div>
-            )}
+            {error && <div className="text-red-500 text-center font-semibold">{error}</div>}
 
-            {/* Orders Table */}
-            <div className="overflow-x-auto bg-background border border-gray-300 dark:border-gray-600 rounded shadow">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50 dark:bg-gray-700">
-                        <tr>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-text/50">Token</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-text/50">Canteen</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-text/50">Status</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-text/50">Payment</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-text/50">Items</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-text/50">Total (₹)</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-text/50">Date</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-text/50">Payment Method</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-text/50">QR</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {!loading && orders.length === 0 && (
-                            <tr>
-                                <td colSpan={9} className="text-center py-6 text-text/80">
-                                    No orders found.
-                                </td>
-                            </tr>
-                        )}
+            {/* Orders List */}
+            {loading ? (
+                <p className="text-text/70 text-center">Loading orders...</p>
+            ) : orders.length === 0 ? (
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-center text-text/70 p-10 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm"
+                >
+                    No orders found.
+                </motion.div>
+            ) : (
+                <div className="space-y-4">
+                    {orders.map((order) => (
+                        <motion.div
+                            key={order._id}
+                            layout
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            className="border border-gray-200 dark:border-gray-700 rounded-2xl p-5 bg-background shadow-sm hover:shadow-md transition"
+                        >
+                            <div className="flex flex-col md:flex-row justify-between md:items-center gap-3">
+                                <div>
+                                    <h3 className="font-semibold text-lg text-primary">
+                                        Token #{order.token}
+                                    </h3>
+                                    <p className="text-sm text-text/70">
+                                        {order.canteen?.name || "Canteen"} —{" "}
+                                        {dayjs(order.createdAt).format("DD MMM YYYY, HH:mm")}
+                                    </p>
+                                </div>
 
-                        {orders.map((order) => (
-                            <tr
-                                key={order._id}
-                                className="hover:bg-primary/10 dark:hover:bg-primary/10 border-b border-gray-200 dark:border-gray-600"
-                            >
-                                <td className="px-4 py-3">{order.token}</td>
-                                <td className="px-4 py-3">{order.canteen?.name || "-"}</td>
-                                <td className="px-4 py-3 capitalize">{order.status}</td>
-                                <td className="px-4 py-3 capitalize">{order.paymentStatus}</td>
-                                <td className="px-4 py-3">
+                                <div className="flex flex-wrap gap-2">
+                                    <span
+                                        className={`px-2 py-1 rounded text-xs font-medium ${order.status === "completed"
+                                            ? "bg-green-100 text-green-800"
+                                            : order.status === "cancelled"
+                                                ? "bg-red-100 text-red-800"
+                                                : "bg-yellow-100 text-yellow-800"
+                                            }`}
+                                    >
+                                        {order.status}
+                                    </span>
+                                    <span
+                                        className={`px-2 py-1 rounded text-xs font-medium ${order.paymentStatus === "paid"
+                                            ? "bg-green-100 text-green-800"
+                                            : order.paymentStatus === "failed"
+                                                ? "bg-red-100 text-red-800"
+                                                : "bg-gray-100 text-gray-700"
+                                            }`}
+                                    >
+                                        {order.paymentStatus}
+                                    </span>
+                                    <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
+                                        {order.paymentMethod}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="mt-3 text-sm text-text/80">
+                                <p>
+                                    <span className="font-medium">Items:</span>{" "}
                                     {order.items
                                         .map((i) => `${i.quantity}x ${i.item?.name || "Unknown"}`)
                                         .join(", ")}
-                                </td>
-                                <td className="px-4 py-3">₹{order.totalPrice.toFixed(2)}</td>
-                                <td className="px-4 py-3">{dayjs(order.createdAt).format("DD MMM YYYY, HH:mm")}</td>
-                                <td className="px-4 py-3 capitalize">{order.paymentMethod}</td>
-                                <td className="px-4 py-3">
-                                    <button
-                                        onClick={() => setQrOrder(order)}
-                                        className="bg-primary text-white px-2 py-1 rounded hover:bg-primary-dark transition text-sm"
-                                    >
-                                        Show QR
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
+                                </p>
+                                <p className="font-semibold text-primary mt-1">
+                                    Total: ₹{order.totalPrice.toFixed(2)}
+                                </p>
+                            </div>
 
-                        {(loading || loadingMore) && (
-                            <tr>
-                                <td colSpan={9} className="text-center py-6 text-text/80">
-                                    Loading...
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                            <div className="mt-4 flex justify-between items-center">
+                                <button
+                                    onClick={() => setQrOrder(order)}
+                                    className="bg-primary text-white px-4 py-1.5 rounded-full text-sm hover:bg-primary-dark transition"
+                                >
+                                    Show QR
+                                </button>
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
+            )}
 
-            {/* Load More Button */}
+            {/* Load More */}
             {hasMore && !loading && (
-                <div className="flex justify-center mt-4">
+                <div className="flex justify-center mt-6">
                     <button
                         onClick={loadMore}
                         disabled={loadingMore}
-                        className="bg-primary text-white px-6 py-2 rounded hover:bg-primary-dark disabled:bg-primary/50 transition"
+                        className="bg-primary text-white px-6 py-2 rounded-full font-semibold hover:bg-primary-dark disabled:bg-primary/50 transition"
                     >
                         {loadingMore ? "Loading..." : "Load More"}
                     </button>
@@ -317,11 +334,11 @@ const OrderHistory = () => {
             {/* QR Modal */}
             {qrOrder && (
                 <div
-                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                    className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
                     onClick={() => setQrOrder(null)}
                 >
                     <div
-                        className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg relative"
+                        className="bg-background p-6 rounded-2xl shadow-lg relative border border-gray-200 dark:border-gray-700"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <button
@@ -330,13 +347,17 @@ const OrderHistory = () => {
                         >
                             ✕
                         </button>
-                        <h2 className="text-lg font-semibold mb-4">Order QR Code</h2>
-                        <QRCodeCanvas
-                            value={`${window.location.origin}/verify-qr?token=${qrOrder.token}`}
-                            size={200}
-                            marginSize={4}
-                        />
-                        <p className="mt-2 text-sm text-gray-500 break-all">
+                        <h2 className="text-lg font-semibold mb-4 text-primary text-center">
+                            Order QR Code
+                        </h2>
+                        <div className="flex justify-center">
+                            <QRCodeCanvas
+                                value={`${window.location.origin}/verify-qr?token=${qrOrder.token}`}
+                                size={200}
+                                marginSize={4}
+                            />
+                        </div>
+                        <p className="mt-3 text-sm text-text/70 text-center break-all">
                             Token: {qrOrder.token}
                         </p>
                     </div>
