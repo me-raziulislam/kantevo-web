@@ -9,10 +9,11 @@ const CanteenCard = ({ canteen, active, onSelect, detailed = false }) => {
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.985 }}
                 onClick={() => onSelect(canteen._id)}
-                className={`text-left cursor-pointer rounded-2xl p-5 border shadow-sm transition ${active
+                className={`text-left cursor-pointer rounded-2xl p-5 border shadow-sm transition ${
+                    active
                         ? "border-primary shadow-md"
                         : "border-gray-200 dark:border-gray-700"
-                    } bg-background w-full hover:shadow-md`}
+                } bg-background w-full hover:shadow-md`}
             >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                     <div>
@@ -33,6 +34,11 @@ const CanteenCard = ({ canteen, active, onSelect, detailed = false }) => {
                             {canteen.openingTime} - {canteen.closingTime}{" "}
                             {!canteen.isOpenOnSunday && "(Closed on Sundays)"}
                         </p>
+                        {canteen.nextOpeningText && !canteen.isOpen && (
+                            <p className="text-xs text-text/60 mt-1 italic">
+                                {canteen.nextOpeningText}
+                            </p>
+                        )}
                     </div>
                 </div>
 
@@ -57,10 +63,11 @@ const CanteenCard = ({ canteen, active, onSelect, detailed = false }) => {
             whileHover={{ scale: 1.015 }}
             whileTap={{ scale: 0.985 }}
             onClick={() => onSelect(canteen._id)}
-            className={`text-left cursor-pointer rounded-2xl p-3 border shadow-sm transition ${active
+            className={`text-left cursor-pointer rounded-2xl p-3 border shadow-sm transition ${
+                active
                     ? "border-primary shadow-md"
                     : "border-gray-200 dark:border-gray-700"
-                } bg-background w-full`}
+            } bg-background w-full`}
         >
             <div className="flex gap-3 items-center">
                 <img
@@ -80,10 +87,11 @@ const CanteenCard = ({ canteen, active, onSelect, detailed = false }) => {
             </div>
             <div className="mt-3">
                 <div
-                    className={`inline-flex text-xs px-2 py-0.5 rounded-full ${canteen.isOpen
+                    className={`inline-flex text-xs px-2 py-0.5 rounded-full ${
+                        canteen.isOpen
                             ? "bg-green-100 text-green-800"
                             : "bg-red-100 text-red-800"
-                        }`}
+                    }`}
                 >
                     {canteen.isOpen ? "Open" : "Closed"}
                 </div>
