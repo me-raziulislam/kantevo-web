@@ -62,7 +62,7 @@ const Navbar = () => {
         ? "canteenOwner"
         : "student";
 
-    // Structured data
+    // ---------- Structured data ----------
     const navStructuredData = {
         "@context": "https://schema.org",
         "@type": "ItemList",
@@ -89,7 +89,7 @@ const Navbar = () => {
                         </span>
                     </Link>
 
-                    {/* Right */}
+                    {/* Right Section */}
                     <div className="flex items-center gap-3">
                         {!user ? (
                             <>
@@ -130,22 +130,31 @@ const Navbar = () => {
                                 </button>
 
                                 {openMenu && (
-                                    <div className="absolute right-0 mt-2 w-48 rounded-2xl border border-gray-200 dark:border-gray-700 bg-background shadow-lg overflow-hidden">
+                                    <div className="absolute right-0 mt-2 w-52 rounded-2xl border border-gray-200 dark:border-gray-700 bg-background shadow-lg overflow-hidden">
+                                        {/* Profile */}
                                         <Link
-                                            to={user.role === "student" ? "/student/profile" : "/canteen/profile"}
+                                            to={
+                                                user.role === "student"
+                                                    ? "/student/profile"
+                                                    : user.role === "canteenOwner"
+                                                    ? "/canteen/profile"
+                                                    : "/admin/colleges"
+                                            }
                                             className="block px-4 py-2 text-sm hover:bg-primary/10"
                                             onClick={() => setOpenMenu(false)}
                                         >
                                             Profile
                                         </Link>
+
+                                        {/* Student Links */}
                                         {user.role === "student" && (
                                             <>
                                                 <Link
-                                                    to="/student/orders"
+                                                    to="/student/home"
                                                     className="block px-4 py-2 text-sm hover:bg-primary/10"
                                                     onClick={() => setOpenMenu(false)}
                                                 >
-                                                    Orders
+                                                    Browse Canteens
                                                 </Link>
                                                 <Link
                                                     to="/student/cart"
@@ -155,14 +164,70 @@ const Navbar = () => {
                                                     Cart
                                                 </Link>
                                                 <Link
-                                                    to="/student/home"
+                                                    to="/student/orders"
                                                     className="block px-4 py-2 text-sm hover:bg-primary/10"
                                                     onClick={() => setOpenMenu(false)}
                                                 >
-                                                    Browse Canteens
+                                                    Orders
                                                 </Link>
                                             </>
                                         )}
+
+                                        {/* Canteen Owner Links */}
+                                        {user.role === "canteenOwner" && (
+                                            <>
+                                                <Link
+                                                    to="/canteen/home"
+                                                    className="block px-4 py-2 text-sm hover:bg-primary/10"
+                                                    onClick={() => setOpenMenu(false)}
+                                                >
+                                                    Dashboard
+                                                </Link>
+                                                <Link
+                                                    to="/canteen/items"
+                                                    className="block px-4 py-2 text-sm hover:bg-primary/10"
+                                                    onClick={() => setOpenMenu(false)}
+                                                >
+                                                    Manage Items
+                                                </Link>
+                                                <Link
+                                                    to="/canteen/orders"
+                                                    className="block px-4 py-2 text-sm hover:bg-primary/10"
+                                                    onClick={() => setOpenMenu(false)}
+                                                >
+                                                    Orders
+                                                </Link>
+                                            </>
+                                        )}
+
+                                        {/* Admin Links */}
+                                        {user.role === "admin" && (
+                                            <>
+                                                <Link
+                                                    to="/admin/colleges"
+                                                    className="block px-4 py-2 text-sm hover:bg-primary/10"
+                                                    onClick={() => setOpenMenu(false)}
+                                                >
+                                                    Colleges
+                                                </Link>
+                                                <Link
+                                                    to="/admin/canteens"
+                                                    className="block px-4 py-2 text-sm hover:bg-primary/10"
+                                                    onClick={() => setOpenMenu(false)}
+                                                >
+                                                    Canteens
+                                                </Link>
+                                                <Link
+                                                    to="/admin/orders"
+                                                    className="block px-4 py-2 text-sm hover:bg-primary/10"
+                                                    onClick={() => setOpenMenu(false)}
+                                                >
+                                                    Orders
+                                                </Link>
+                                            </>
+                                        )}
+
+                                        {/* Common */}
                                         <Link
                                             to="/settings"
                                             className="block px-4 py-2 text-sm hover:bg-primary/10"
