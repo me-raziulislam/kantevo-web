@@ -388,7 +388,7 @@ const OrderHistory = () => {
                         </h2>
                         <div className="flex justify-center">
                             <QRCodeCanvas
-                                value={`${window.location.origin}/verify-qr?token=${qrOrder.token}`}
+                                value={`${window.location.origin}/verify-qr?token=${qrOrder.qrHash}`}
                                 size={200}
                                 marginSize={4}
                             />

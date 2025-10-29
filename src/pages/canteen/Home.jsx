@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { FaBox, FaClipboardList, FaCheckCircle, FaQrcode, FaChartLine } from "react-icons/fa";
-import { BrowserQRCodeReader } from "@zxing/browser"; // replaced Html5Qrcode with modern library
+import { BrowserMultiFormatReader } from "@zxing/browser"; // replaced Html5Qrcode with modern library
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Dialog } from "@headlessui/react";
+import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
 import SEO from "../../components/SEO";
 
 // Simple skeleton component
@@ -37,9 +37,10 @@ const Home = () => {
     const [lastScanned, setLastScanned] = useState(null);
     const [modalOpen, setModalOpen] = useState(false);
 
-    const scannerRef = useRef(null); // store scanner instance
-    const videoRef = useRef(null); // store video element reference
-    const dailyRefreshIntervalRef = useRef(null); // keep interval id so we can clear it
+    const videoRef = useRef(null);
+    const readerRef = useRef(null);
+    const streamRef = useRef(null);
+    const dailyRefreshIntervalRef = useRef(null);
 
     // Fetch normal stats + new backend stats
     useEffect(() => {
@@ -170,7 +171,7 @@ const Home = () => {
         if (!text || text === lastScanned) return; // Prevent duplicate scans
         setLastScanned(text);
 
-        stopScanner(); // ✅ Stop scanning after first result
+        stopScanner(); // Stop scanning after first result
 
         try {
             const qrHash = text.split("/").pop(); // if URL, take last part
@@ -182,10 +183,12 @@ const Home = () => {
             console.error(err);
             setScanError(err?.response?.data?.msg || "Invalid or expired QR code");
             setScanResult(null);
+        } finally {
+            stopScanner(); // ensures camera always stops even on failure
         }
     };
 
-    // ✅ Mark order as delivered
+    // Mark order as delivered
     const markAsDelivered = async () => {
         try {
             if (!scanResult?._id) return;
@@ -204,51 +207,71 @@ const Home = () => {
             setScanResult(null);
             setScanning(true);
 
-            const codeReader = new BrowserQRCodeReader();
-            scannerRef.current = codeReader;
+            const reader = new BrowserMultiFormatReader();
+            readerRef.current = reader;
 
-            const devices = await BrowserQRCodeReader.listVideoInputDevices();
-            const backCam =
-                devices.find((d) => d.label.toLowerCase().includes("back")) || devices[0];
+            const devices = await BrowserMultiFormatReader.listVideoInputDevices();
+            if (!devices.length) throw new Error("No camera devices found");
+            const backCam = devices.find(d => d.label.toLowerCase().includes("back")) || devices[0];
 
-            await codeReader.decodeFromVideoDevice(
-                backCam.deviceId,
-                videoRef.current,
-                (result, err) => {
-                    if (result) {
-                        handleScan(result.getText());
-                    }
-                    if (err && !(err.name === "NotFoundException")) {
-                        console.warn("QR Scan warning:", err);
-                    }
+            // Get stream manually
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { deviceId: backCam.deviceId },
+                audio: false,
+            });
+            streamRef.current = stream;
+            if (videoRef.current) videoRef.current.srcObject = stream;
+
+            // Start continuous decoding
+            await reader.decodeFromVideoDevice(backCam.deviceId, videoRef.current, (result, err) => {
+                if (result) handleScan(result.getText());
+                if (err && !(err.name === "NotFoundException")) {
+                    console.warn("QR scan warning:", err);
                 }
-            );
+            });
         } catch (err) {
             console.error("Scanner start error:", err);
-            setScanError("Unable to start camera. Please check permissions.");
+            setScanError(err.message.includes("Permission") ? "Camera permission denied." : "Unable to start camera.");
             setScanning(false);
         }
     };
 
     // Stop scanner
     const stopScanner = () => {
-        if (scannerRef.current) {
-            scannerRef.current.reset();
-            scannerRef.current = null;
+        try {
+            // Stop active decoding loop
+            if (readerRef.current) {
+                readerRef.current.stopContinuousDecode?.(); // stops decodeFromVideoDevice loop if running
+                readerRef.current.reset();
+                readerRef.current = null;
+            }
+
+            // Stop all active camera tracks
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach((t) => {
+                    t.stop();
+                    t.enabled = false;
+                });
+                streamRef.current = null;
+            }
+
+            // Clear video element stream
+            if (videoRef.current) {
+                videoRef.current.srcObject = null;
+            }
+
+            setScanning(false);
+        } catch (e) {
+            console.warn("Error stopping scanner:", e);
         }
-        setScanning(false);
     };
+
 
     // Manage scanner start/stop on scanning state
     useEffect(() => {
-        if (scanning) {
-            setScanResult(null);
-            setScanError(null);
-            startScanner();
-        } else {
-            stopScanner();
-        }
-        return () => stopScanner(); // Cleanup on unmount
+        if (scanning) startScanner();
+        else stopScanner();
+        return () => stopScanner();
     }, [scanning]);
 
     return (
@@ -275,7 +298,7 @@ const Home = () => {
 
                 {scanning && (
                     <div className="mt-4 border border-gray-300 rounded overflow-hidden max-w-sm mx-auto">
-                        <video ref={videoRef} className="w-full rounded" autoPlay muted />
+                        <video ref={videoRef} className="w-full rounded" autoPlay muted playsInline />
                     </div>
                 )}
 
@@ -293,10 +316,10 @@ const Home = () => {
                 className="relative z-50"
             >
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-                    <Dialog.Panel className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg max-w-md w-full">
-                        <Dialog.Title className="text-lg font-semibold text-primary mb-3">
+                    <DialogPanel className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg max-w-md w-full">
+                        <DialogTitle className="text-lg font-semibold text-primary mb-3">
                             Order Details
-                        </Dialog.Title>
+                        </DialogTitle>
                         {scanResult ? (
                             <>
                                 <p><strong>Token:</strong> {scanResult.token}</p>
@@ -322,7 +345,7 @@ const Home = () => {
                         ) : (
                             <p>Loading...</p>
                         )}
-                    </Dialog.Panel>
+                    </DialogPanel>
                 </div>
             </Dialog>
 
