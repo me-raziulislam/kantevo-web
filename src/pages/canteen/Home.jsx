@@ -171,30 +171,23 @@ const Home = () => {
 
     // Handle QR scan
     const handleScan = async (text) => {
-        if (!text || text === lastScanned || scanningLockedRef.current) return;
-        scanningLockedRef.current = true; // lock further scans
-
+        if (!text || text === lastScanned) return;// Prevent duplicate scans 
         setLastScanned(text);
 
+        stopScanner(); // Stop scanning after first result
+
         try {
-            const qrHash = text.split("/").pop();
+            const qrHash = text.split("/").pop(); // if URL, take last part 
             const res = await api.get(`/orders/verify-qr/${qrHash}`);
             setScanResult(res?.data?.order || null);
             setScanError(null);
             setModalOpen(true);
-
-            // Immediately stop scanner after successful scan
-            stopScanner();
         } catch (err) {
             console.error(err);
             setScanError(err?.response?.data?.msg || "Invalid or expired QR code");
             setScanResult(null);
-
-            // Stop scanner after failure as well
-            stopScanner();
         } finally {
-            scanningLockedRef.current = false; // unlock after cleanup
-            if (!scanResult) startScanner();
+            stopScanner(); // ensures camera always stops even on failure 
         }
     };
 
@@ -255,47 +248,31 @@ const Home = () => {
         }
     };
 
-    // Stop scanner completely
+    // Stop scanner 
     const stopScanner = () => {
         try {
+            // Stop active decoding loop 
             if (readerRef.current) {
-                try {
-                    readerRef.current.stopContinuousDecode?.(); // newer versions support this
-                } catch (_) { }
-                try {
-                    readerRef.current.stopStreams?.(); // stop all internal streams
-                } catch (_) { }
-                try {
-                    readerRef.current.reset(); // cleanup decoder
-                } catch (_) { }
+                readerRef.current.stopContinuousDecode?.(); // stops decodeFromVideoDevice loop if running 
+                readerRef.current.reset();
                 readerRef.current = null;
             }
 
+            // Stop all active camera tracks 
             if (streamRef.current) {
-                streamRef.current.getTracks().forEach((track) => {
-                    track.stop();
-                    track.enabled = false;
+                streamRef.current.getTracks().forEach((t) => {
+                    t.stop();
+                    t.enabled = false;
                 });
                 streamRef.current = null;
             }
 
+            // Clear video element stream 
             if (videoRef.current) {
                 videoRef.current.srcObject = null;
             }
 
             setScanning(false);
-            // ✅ Extra failsafe: reload if camera light still on
-            setTimeout(() => {
-                navigator.mediaDevices
-                    .enumerateDevices()
-                    .then((devices) => {
-                        const cams = devices.filter((d) => d.kind === "videoinput");
-                        if (cams.some((d) => d.label.includes("(active)"))) {
-                            window.location.reload();
-                        }
-                    })
-                    .catch(() => window.location.reload());
-            }, 500);
         } catch (e) {
             console.warn("Error stopping scanner:", e);
         }
@@ -304,7 +281,8 @@ const Home = () => {
     // Manage scanner start/stop on scanning state
     useEffect(() => {
         if (scanning) startScanner();
-        return () => stopScanner(); // cleanup on unmount or state change
+        else stopScanner();
+        return () => stopScanner();
     }, [scanning]);
 
 
