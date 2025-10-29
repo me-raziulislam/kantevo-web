@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { FaBox, FaClipboardList, FaCheckCircle, FaQrcode, FaChartLine } from "react-icons/fa";
-import { Html5Qrcode } from "html5-qrcode"; // ✅ direct Html5Qrcode for manual control
+import { BrowserQRCodeReader } from "@zxing/browser"; // replaced Html5Qrcode with modern library
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Dialog } from "@headlessui/react";
 import SEO from "../../components/SEO";
 
 // Simple skeleton component
@@ -29,13 +30,15 @@ const Home = () => {
     const [loadingStats, setLoadingStats] = useState(true);
     const [loadingChart, setLoadingChart] = useState(true);
 
-    // QR scanner states
+    // QR scanner + modal states
     const [scanning, setScanning] = useState(false);
     const [scanResult, setScanResult] = useState(null);
     const [scanError, setScanError] = useState(null);
     const [lastScanned, setLastScanned] = useState(null);
+    const [modalOpen, setModalOpen] = useState(false);
 
     const scannerRef = useRef(null); // store scanner instance
+    const videoRef = useRef(null); // store video element reference
     const dailyRefreshIntervalRef = useRef(null); // keep interval id so we can clear it
 
     // Fetch normal stats + new backend stats
@@ -164,8 +167,7 @@ const Home = () => {
 
     // Handle QR scan
     const handleScan = async (text) => {
-        if (!text) return;
-        if (text === lastScanned) return; // Prevent duplicate scans
+        if (!text || text === lastScanned) return; // Prevent duplicate scans
         setLastScanned(text);
 
         stopScanner(); // ✅ Stop scanning after first result
@@ -175,6 +177,7 @@ const Home = () => {
             const res = await api.get(`/orders/verify-qr/${qrHash}`);
             setScanResult(res?.data?.order || null);
             setScanError(null);
+            setModalOpen(true);
         } catch (err) {
             console.error(err);
             setScanError(err?.response?.data?.msg || "Invalid or expired QR code");
@@ -182,34 +185,56 @@ const Home = () => {
         }
     };
 
-    // Start scanner
-    const startScanner = () => {
-        const scanner = new Html5Qrcode("qr-reader");
-        scannerRef.current = scanner;
+    // ✅ Mark order as delivered
+    const markAsDelivered = async () => {
+        try {
+            if (!scanResult?._id) return;
+            await api.patch(`/orders/${scanResult._id}/deliver`);
+            setModalOpen(false);
+            alert("Order marked as delivered ✅");
+        } catch (err) {
+            alert("Failed to mark as delivered");
+        }
+    };
 
-        scanner.start(
-            { facingMode: "environment" },
-            { fps: 10, qrbox: 250 },
-            (decodedText) => {
-                handleScan(decodedText);
-            },
-            (error) => {
-                if (error.name !== "NotFoundException") {
-                    console.error("QR Scan Error:", error);
+    // Start scanner (using @zxing/browser)
+    const startScanner = async () => {
+        try {
+            setScanError(null);
+            setScanResult(null);
+            setScanning(true);
+
+            const codeReader = new BrowserQRCodeReader();
+            scannerRef.current = codeReader;
+
+            const devices = await BrowserQRCodeReader.listVideoInputDevices();
+            const backCam =
+                devices.find((d) => d.label.toLowerCase().includes("back")) || devices[0];
+
+            await codeReader.decodeFromVideoDevice(
+                backCam.deviceId,
+                videoRef.current,
+                (result, err) => {
+                    if (result) {
+                        handleScan(result.getText());
+                    }
+                    if (err && !(err.name === "NotFoundException")) {
+                        console.warn("QR Scan warning:", err);
+                    }
                 }
-            }
-        ).catch(err => {
+            );
+        } catch (err) {
             console.error("Scanner start error:", err);
             setScanError("Unable to start camera. Please check permissions.");
-        });
+            setScanning(false);
+        }
     };
 
     // Stop scanner
     const stopScanner = () => {
         if (scannerRef.current) {
-            scannerRef.current.stop()
-                .then(() => scannerRef.current.clear())
-                .catch(err => console.error("Stop scanner error:", err));
+            scannerRef.current.reset();
+            scannerRef.current = null;
         }
         setScanning(false);
     };
@@ -249,25 +274,8 @@ const Home = () => {
                 </button>
 
                 {scanning && (
-                    <div className="mt-4 border border-gray-300 rounded overflow-hidden max-w-sm">
-                        <div id="qr-reader" style={{ width: "100%" }}></div>
-                    </div>
-                )}
-
-                {/* Scan results */}
-                {scanResult && (
-                    <div className="mt-4 p-4 border border-green-400 rounded bg-green-50 text-green-800">
-                        <h3 className="font-semibold mb-2">Order Verified ✅</h3>
-                        <p><strong>Token:</strong> {scanResult.token}</p>
-                        <p><strong>Status:</strong> {scanResult.status}</p>
-                        <p><strong>Payment:</strong> {scanResult.paymentStatus}</p>
-                        <p>
-                            <strong>Items:</strong>{" "}
-                            {Array.isArray(scanResult.items)
-                                ? scanResult.items.map((i) => `${i.quantity}x ${i.name}`).join(", ")
-                                : "-"}
-                        </p>
-                        <p><strong>Total:</strong> ₹{scanResult.totalPrice}</p>
+                    <div className="mt-4 border border-gray-300 rounded overflow-hidden max-w-sm mx-auto">
+                        <video ref={videoRef} className="w-full rounded" autoPlay muted />
                     </div>
                 )}
 
@@ -277,6 +285,46 @@ const Home = () => {
                     </div>
                 )}
             </div>
+
+            {/* ✅ Order Details Modal */}
+            <Dialog
+                open={modalOpen}
+                onClose={() => setModalOpen(false)}
+                className="relative z-50"
+            >
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+                    <Dialog.Panel className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg max-w-md w-full">
+                        <Dialog.Title className="text-lg font-semibold text-primary mb-3">
+                            Order Details
+                        </Dialog.Title>
+                        {scanResult ? (
+                            <>
+                                <p><strong>Token:</strong> {scanResult.token}</p>
+                                <p><strong>Status:</strong> {scanResult.status}</p>
+                                <p><strong>Payment:</strong> {scanResult.paymentStatus}</p>
+                                <p><strong>Total:</strong> ₹{scanResult.totalPrice}</p>
+                                <p className="mt-2 font-semibold">Items:</p>
+                                <ul className="list-disc ml-5 text-sm">
+                                    {scanResult.items?.map((i) => (
+                                        <li key={i._id}>
+                                            {i.quantity}x {i.item?.name || "Item"}
+                                        </li>
+                                    ))}
+                                </ul>
+
+                                <button
+                                    onClick={markAsDelivered}
+                                    className="mt-4 w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
+                                >
+                                    Mark as Delivered
+                                </button>
+                            </>
+                        ) : (
+                            <p>Loading...</p>
+                        )}
+                    </Dialog.Panel>
+                </div>
+            </Dialog>
 
             {/* Money & Orders Stats with Skeleton */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">

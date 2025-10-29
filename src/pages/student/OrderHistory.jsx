@@ -131,6 +131,21 @@ const OrderHistory = () => {
         fetchOrders(true);
     };
 
+    // ------------------- QR Visibility Helpers -------------------
+    const isQrVisible = (order) => {
+        if (!order.qrExpires || !order.qrHash) return false;
+        if (order.status === "completed" || order.status === "cancelled") return false;
+        return new Date(order.qrExpires) > new Date(); // still valid
+    };
+
+    const getDeliveryText = (order) => {
+        if (order.deliveredAt) {
+            return `Delivered on ${dayjs(order.updatedAt).format("DD MMM YYYY, HH:mm")}`;
+        }
+        return null;
+    };
+
+    // ------------------- RENDER -------------------
     return (
         <div className="max-w-6xl mx-auto p-6 bg-background text-text min-h-full space-y-8 transition-colors duration-300">
             <SEO
@@ -246,75 +261,96 @@ const OrderHistory = () => {
                 </motion.div>
             ) : (
                 <div className="space-y-4">
-                    {orders.map((order) => (
-                        <motion.div
-                            key={order._id}
-                            layout
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -8 }}
-                            className="border border-gray-200 dark:border-gray-700 rounded-2xl p-5 bg-background shadow-sm hover:shadow-md transition"
-                        >
-                            <div className="flex flex-col md:flex-row justify-between md:items-center gap-3">
-                                <div>
-                                    <h3 className="font-semibold text-lg text-primary">
-                                        Token #{order.token}
-                                    </h3>
-                                    <p className="text-sm text-text/70">
-                                        {order.canteen?.name || "Canteen"} —{" "}
-                                        {dayjs(order.createdAt).format("DD MMM YYYY, HH:mm")}
+                    {orders.map((order) => {
+                        const deliveredText = getDeliveryText(order);
+                        const showQr = isQrVisible(order);
+
+                        return (
+                            <motion.div
+                                key={order._id}
+                                layout
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -8 }}
+                                className="border border-gray-200 dark:border-gray-700 rounded-2xl p-5 bg-background shadow-sm hover:shadow-md transition"
+                            >
+                                <div className="flex flex-col md:flex-row justify-between md:items-center gap-3">
+                                    <div>
+                                        <h3 className="font-semibold text-lg text-primary">
+                                            Token #{order.token}
+                                        </h3>
+                                        <p className="text-sm text-text/70">
+                                            {order.canteen?.name || "Canteen"} —{" "}
+                                            {dayjs(order.createdAt).format(
+                                                "DD MMM YYYY, HH:mm"
+                                            )}
+                                        </p>
+                                    </div>
+
+                                    <div className="flex flex-wrap gap-2">
+                                        <span
+                                            className={`px-2 py-1 rounded text-xs font-medium ${order.status === "completed"
+                                                ? "bg-green-100 text-green-800"
+                                                : order.status === "cancelled"
+                                                    ? "bg-red-100 text-red-800"
+                                                    : "bg-yellow-100 text-yellow-800"
+                                                }`}
+                                        >
+                                            {order.status}
+                                        </span>
+                                        <span
+                                            className={`px-2 py-1 rounded text-xs font-medium ${order.paymentStatus === "paid"
+                                                ? "bg-green-100 text-green-800"
+                                                : order.paymentStatus === "failed"
+                                                    ? "bg-red-100 text-red-800"
+                                                    : "bg-gray-100 text-gray-700"
+                                                }`}
+                                        >
+                                            {order.paymentStatus}
+                                        </span>
+                                        <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
+                                            {order.paymentMethod}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="mt-3 text-sm text-text/80">
+                                    <p>
+                                        <span className="font-medium">Items:</span>{" "}
+                                        {order.items
+                                            .map(
+                                                (i) =>
+                                                    `${i.quantity}x ${i.item?.name || "Unknown"
+                                                    }`
+                                            )
+                                            .join(", ")}
                                     </p>
+                                    <p className="font-semibold text-primary mt-1">
+                                        Total: ₹{order.totalPrice.toFixed(2)}
+                                    </p>
+
+                                    {/* Delivery text */}
+                                    {deliveredText && (
+                                        <p className="text-green-600 text-sm mt-1 font-medium">
+                                            {deliveredText}
+                                        </p>
+                                    )}
                                 </div>
 
-                                <div className="flex flex-wrap gap-2">
-                                    <span
-                                        className={`px-2 py-1 rounded text-xs font-medium ${order.status === "completed"
-                                            ? "bg-green-100 text-green-800"
-                                            : order.status === "cancelled"
-                                                ? "bg-red-100 text-red-800"
-                                                : "bg-yellow-100 text-yellow-800"
-                                            }`}
-                                    >
-                                        {order.status}
-                                    </span>
-                                    <span
-                                        className={`px-2 py-1 rounded text-xs font-medium ${order.paymentStatus === "paid"
-                                            ? "bg-green-100 text-green-800"
-                                            : order.paymentStatus === "failed"
-                                                ? "bg-red-100 text-red-800"
-                                                : "bg-gray-100 text-gray-700"
-                                            }`}
-                                    >
-                                        {order.paymentStatus}
-                                    </span>
-                                    <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
-                                        {order.paymentMethod}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className="mt-3 text-sm text-text/80">
-                                <p>
-                                    <span className="font-medium">Items:</span>{" "}
-                                    {order.items
-                                        .map((i) => `${i.quantity}x ${i.item?.name || "Unknown"}`)
-                                        .join(", ")}
-                                </p>
-                                <p className="font-semibold text-primary mt-1">
-                                    Total: ₹{order.totalPrice.toFixed(2)}
-                                </p>
-                            </div>
-
-                            <div className="mt-4 flex justify-between items-center">
-                                <button
-                                    onClick={() => setQrOrder(order)}
-                                    className="bg-primary text-white px-4 py-1.5 rounded-full text-sm hover:bg-primary-dark transition"
-                                >
-                                    Show QR
-                                </button>
-                            </div>
-                        </motion.div>
-                    ))}
+                                {/* Show QR only if active */}
+                                {showQr && (
+                                    <div className="mt-4 flex justify-between items-center">
+                                        <button
+                                            onClick={() => setQrOrder(order)}
+                                            className="bg-primary text-white px-4 py-1.5 rounded-full text-sm hover:bg-primary-dark transition"
+                                        >
+                                            Show QR
+                                        </button>
+                                    </div>
+                                )}
+                            </motion.div>
+                        );
+                    })}
                 </div>
             )}
 
@@ -359,6 +395,9 @@ const OrderHistory = () => {
                         </div>
                         <p className="mt-3 text-sm text-text/70 text-center break-all">
                             Token: {qrOrder.token}
+                        </p>
+                        <p className="text-xs text-text/50 text-center mt-1">
+                            Show this QR at the canteen to receive your order.
                         </p>
                     </div>
                 </div>
