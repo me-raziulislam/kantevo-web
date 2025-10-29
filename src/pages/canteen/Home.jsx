@@ -166,25 +166,35 @@ const Home = () => {
         };
     }, [canteenId, api]);
 
+    // Prevent double scans
+    const scanningLockedRef = useRef(false);
+
     // Handle QR scan
     const handleScan = async (text) => {
-        if (!text || text === lastScanned) return; // Prevent duplicate scans
+        if (!text || text === lastScanned || scanningLockedRef.current) return;
+        scanningLockedRef.current = true; // lock further scans
+
         setLastScanned(text);
 
-        stopScanner(); // Stop scanning after first result
-
         try {
-            const qrHash = text.split("/").pop(); // if URL, take last part
+            const qrHash = text.split("/").pop();
             const res = await api.get(`/orders/verify-qr/${qrHash}`);
             setScanResult(res?.data?.order || null);
             setScanError(null);
             setModalOpen(true);
+
+            // Immediately stop scanner after successful scan
+            stopScanner();
         } catch (err) {
             console.error(err);
             setScanError(err?.response?.data?.msg || "Invalid or expired QR code");
             setScanResult(null);
+
+            // Stop scanner after failure as well
+            stopScanner();
         } finally {
-            stopScanner(); // ensures camera always stops even on failure
+            scanningLockedRef.current = false; // unlock after cleanup
+            if (!scanResult) startScanner();
         }
     };
 
@@ -206,13 +216,16 @@ const Home = () => {
             setScanError(null);
             setScanResult(null);
             setScanning(true);
+            scanningLockedRef.current = false;
 
             const reader = new BrowserMultiFormatReader();
             readerRef.current = reader;
 
             const devices = await BrowserMultiFormatReader.listVideoInputDevices();
             if (!devices.length) throw new Error("No camera devices found");
-            const backCam = devices.find(d => d.label.toLowerCase().includes("back")) || devices[0];
+            const backCam = devices.find((d) =>
+                d.label.toLowerCase().includes("back")
+            ) || devices[0];
 
             // Get stream manually
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -223,56 +236,77 @@ const Home = () => {
             if (videoRef.current) videoRef.current.srcObject = stream;
 
             // Start continuous decoding
-            await reader.decodeFromVideoDevice(backCam.deviceId, videoRef.current, (result, err) => {
-                if (result) handleScan(result.getText());
+            reader.decodeFromVideoDevice(backCam.deviceId, videoRef.current, (result, err) => {
+                if (result && !scanningLockedRef.current) {
+                    handleScan(result.getText());
+                }
                 if (err && !(err.name === "NotFoundException")) {
                     console.warn("QR scan warning:", err);
                 }
             });
         } catch (err) {
             console.error("Scanner start error:", err);
-            setScanError(err.message.includes("Permission") ? "Camera permission denied." : "Unable to start camera.");
+            setScanError(
+                err.message.includes("Permission")
+                    ? "Camera permission denied."
+                    : "Unable to start camera."
+            );
             setScanning(false);
         }
     };
 
-    // Stop scanner
+    // Stop scanner completely
     const stopScanner = () => {
         try {
-            // Stop active decoding loop
             if (readerRef.current) {
-                readerRef.current.stopContinuousDecode?.(); // stops decodeFromVideoDevice loop if running
-                readerRef.current.reset();
+                try {
+                    readerRef.current.stopContinuousDecode?.(); // newer versions support this
+                } catch (_) { }
+                try {
+                    readerRef.current.stopStreams?.(); // stop all internal streams
+                } catch (_) { }
+                try {
+                    readerRef.current.reset(); // cleanup decoder
+                } catch (_) { }
                 readerRef.current = null;
             }
 
-            // Stop all active camera tracks
             if (streamRef.current) {
-                streamRef.current.getTracks().forEach((t) => {
-                    t.stop();
-                    t.enabled = false;
+                streamRef.current.getTracks().forEach((track) => {
+                    track.stop();
+                    track.enabled = false;
                 });
                 streamRef.current = null;
             }
 
-            // Clear video element stream
             if (videoRef.current) {
                 videoRef.current.srcObject = null;
             }
 
             setScanning(false);
+            // ✅ Extra failsafe: reload if camera light still on
+            setTimeout(() => {
+                navigator.mediaDevices
+                    .enumerateDevices()
+                    .then((devices) => {
+                        const cams = devices.filter((d) => d.kind === "videoinput");
+                        if (cams.some((d) => d.label.includes("(active)"))) {
+                            window.location.reload();
+                        }
+                    })
+                    .catch(() => window.location.reload());
+            }, 500);
         } catch (e) {
             console.warn("Error stopping scanner:", e);
         }
     };
 
-
     // Manage scanner start/stop on scanning state
     useEffect(() => {
         if (scanning) startScanner();
-        else stopScanner();
-        return () => stopScanner();
+        return () => stopScanner(); // cleanup on unmount or state change
     }, [scanning]);
+
 
     return (
         <div className="p-6 bg-background text-text min-h-full">
