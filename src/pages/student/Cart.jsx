@@ -11,7 +11,7 @@ const CANTEEN_CHARGE = 0; // flat ₹
 const PLATFORM_FEE = 1; // flat ₹
 
 const Cart = () => {
-    const { user, api, socket } = useAuth();
+    const { user, api, socket, accessToken, loading: authLoading } = useAuth();
     const [cart, setCart] = useState([]);
     const [loading, setLoading] = useState(false);
     const [loadingItem, setLoadingItem] = useState(null);
@@ -33,8 +33,9 @@ const Cart = () => {
     };
 
     useEffect(() => {
+        if (authLoading || !accessToken) return;
         fetchCart();
-    }, [api]);
+    }, [api, accessToken, authLoading]);
 
     // ------------------- SOCKET LISTENER -------------------
     useEffect(() => {

@@ -13,7 +13,7 @@ const STATUS_OPTIONS = ["pending", "preparing", "ready", "completed", "cancelled
 const PAYMENT_OPTIONS = ["pending", "paid", "failed"];
 
 const OrderHistory = () => {
-    const { user, api, socket } = useAuth(); // use socket from context
+    const { user, api, socket, loading: authLoading, accessToken } = useAuth(); // use socket from context
 
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -35,7 +35,7 @@ const OrderHistory = () => {
     // ------------------- FETCH ORDERS -------------------
     const fetchOrders = useCallback(
         async (isLoadMore = false) => {
-            if (!user) return;
+            if (authLoading || !user || !accessToken) return;
 
             try {
                 if (isLoadMore) setLoadingMore(true);
@@ -76,7 +76,7 @@ const OrderHistory = () => {
                 setLoadingMore(false);
             }
         },
-        [user, api, status, paymentStatus, dateFrom, dateTo]
+        [authLoading, user, accessToken, api, status, paymentStatus, dateFrom, dateTo]
     );
 
     useEffect(() => {

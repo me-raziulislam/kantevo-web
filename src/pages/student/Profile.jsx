@@ -5,7 +5,7 @@ import SEO from "../../components/SEO";
 import { motion } from "framer-motion";
 
 const Profile = () => {
-    const { user, api } = useAuth(); // centralized auth + api instance
+    const { user, api, loading: authLoading, accessToken } = useAuth(); // centralized auth + api instance
     const [profile, setProfile] = useState(null);
     const [form, setForm] = useState({ name: "", phone: "", about: "", college: "" });
     const [loading, setLoading] = useState(true);
@@ -18,7 +18,7 @@ const Profile = () => {
     const [colleges, setColleges] = useState([]);
 
     useEffect(() => {
-        if (!user) return;
+        if (authLoading || !user || !accessToken) return;
 
         const fetchProfileAndColleges = async () => {
             setLoading(true);
@@ -44,7 +44,7 @@ const Profile = () => {
         };
 
         fetchProfileAndColleges();
-    }, [user, api]);
+    }, [user, api, accessToken, authLoading]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;

@@ -5,7 +5,7 @@
 // Logout calls backend to revoke refresh token.
 // Persistent redirect logic handled by AppRoutes.
 
-import { createContext, useContext, useEffect, useState, useRef } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, useMemo } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { io } from 'socket.io-client';
@@ -19,11 +19,26 @@ const api = axios.create({
     baseURL: `${SERVER_URL}/api`,
 });
 
+// right after `const api = axios.create(...)`
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('kantevo:accessToken');
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+});
+
+
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [accessToken, setAccessToken] = useState(null);
-    const [refreshToken, setRefreshToken] = useState(null);
-    const [loading, setLoading] = useState(true);
+    // Synchronous boot from localStorage to avoid race on reload
+    const bootUser = (() => {
+        try { return JSON.parse(localStorage.getItem('kantevo:user') || 'null'); } catch { return null; }
+    })();
+    const bootAccess = localStorage.getItem('kantevo:accessToken') || null;
+    const bootRefresh = localStorage.getItem('kantevo:refreshToken') || null;
+
+    const [user, setUser] = useState(bootUser);
+    const [accessToken, setAccessToken] = useState(bootAccess);
+    const [refreshToken, setRefreshToken] = useState(bootRefresh);
+    const [loading, setLoading] = useState(false); // we already booted synchronously
     const socketRef = useRef(null);
     const refreshPromiseRef = useRef(null); // 🔹 prevents multiple refresh calls
 
@@ -90,23 +105,10 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-
-    /* ----------------------------------------------------
-       🔹 Load session from localStorage
-    ---------------------------------------------------- */
-    useEffect(() => {
-        const storedUser = localStorage.getItem('kantevo:user');
-        const storedAccess = localStorage.getItem('kantevo:accessToken');
-        const storedRefresh = localStorage.getItem('kantevo:refreshToken');
-
-        if (storedUser && storedAccess && storedRefresh) {
-            setUser(ensureOnboardingShape(JSON.parse(storedUser)));
-            setAccessToken(storedAccess);
-            setRefreshToken(storedRefresh);
-            api.defaults.headers.common.Authorization = `Bearer ${storedAccess}`;
-        }
-        setLoading(false);
-    }, []);
+    // Set axios header immediately if we booted with a token
+    if (bootAccess) {
+        api.defaults.headers.common.Authorization = `Bearer ${bootAccess}`;
+    }
 
     /* ----------------------------------------------------
        🔹 Secure Token Refresh (silent renewal + rotation aware)

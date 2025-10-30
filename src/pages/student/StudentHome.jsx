@@ -7,14 +7,14 @@ import SEO from "../../components/SEO";
 import CanteenCard from "../../components/CanteenCard";
 
 const StudentHome = () => {
-    const { user, api } = useAuth();
+    const { user, api, loading: authLoading } = useAuth();
     const navigate = useNavigate();
     const [canteens, setCanteens] = useState([]);
     const [loading, setLoading] = useState(false);
 
     // Fetch canteens for student's college
     useEffect(() => {
-        if (!user?.college) return;
+        if (authLoading || !user?.college) return;
         const collegeId = user.college._id || user.college;
         (async () => {
             try {
@@ -27,7 +27,7 @@ const StudentHome = () => {
                 setLoading(false);
             }
         })();
-    }, [api, user]);
+    }, [api, user, authLoading]);
 
     const onSelectCanteen = (id) => {
         navigate(`/student/canteen/${id}`);

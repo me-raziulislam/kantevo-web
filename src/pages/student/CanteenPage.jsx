@@ -12,7 +12,7 @@ import ViewCartButton from "../../components/ViewCartButton";
 dayjs.extend(duration);
 
 const CanteenPage = () => {
-    const { user, api, socket } = useAuth();
+    const { user, api, socket, accessToken, loading: authLoading } = useAuth();
     const { canteenId } = useParams();
     const navigate = useNavigate();
 
@@ -32,32 +32,47 @@ const CanteenPage = () => {
         return () => clearInterval(t);
     }, []);
 
-    // Fetch canteen info + items
+    // Fetch public data immediately, then cart only if logged in
     useEffect(() => {
+        let cancelled = false;
         (async () => {
             try {
-                setLoading(true); // start loading
-                const [canteenRes, itemsRes, cartRes] = await Promise.all([
-                    api.get(`/canteens/${canteenId}`),
-                    api.get(`/canteens/${canteenId}/items`),
-                    api.get("/cart"),
+                setLoading(true);
+                const [canteenRes, itemsRes] = await Promise.all([
+                    api.get(`/canteens/${canteenId}`),       // public
+                    api.get(`/canteens/${canteenId}/items`), // public
                 ]);
-
+                if (cancelled) return;
                 setCanteen(canteenRes.data);
                 setItems(itemsRes.data.items);
                 setCanteenOpen(itemsRes.data.canteenOpen);
                 setNextOpeningText(itemsRes.data.nextOpeningText || "");
+            } catch (e) {
+                if (!cancelled) toast.error("Failed to load canteen data");
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [api, canteenId]);
 
+    // Fetch cart AFTER auth is ready; suppress 401 toast on reload
+    useEffect(() => {
+        if (authLoading || !accessToken) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const cartRes = await api.get("/cart");
+                if (cancelled) return;
                 const map = {};
                 cartRes.data?.items?.forEach((i) => (map[i.item._id] = i.quantity));
                 setCart(map);
-            } catch {
-                toast.error("Failed to load canteen data");
-            } finally {
-                setLoading(false); // end loading
+            } catch (err) {
+                // Do not toast here on reload; cart is optional context on this page
             }
         })();
-    }, [api, canteenId]);
+        return () => { cancelled = true; };
+    }, [api, accessToken, authLoading]);
 
     // Socket listeners
     useEffect(() => {
