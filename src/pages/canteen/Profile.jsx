@@ -44,11 +44,9 @@ const Profile = () => {
         const fetchCanteen = async () => {
             setCanteenLoading(true);
             try {
-                // assuming owner has a single canteen, adjust if multiple
-                const res = await api.get(`/canteens/college/${user.college}`);
-                if (res.data.length > 0) {
-                    setCanteen(res.data[0]);
-                }
+                // Fetch canteen linked directly to the logged-in owner
+                const res = await api.get(`/canteens/owner/${user._id}`);
+                setCanteen(res.data);
             } catch (err) {
                 setCanteenError(err.response?.data?.message || "Failed to load canteen settings");
             } finally {
