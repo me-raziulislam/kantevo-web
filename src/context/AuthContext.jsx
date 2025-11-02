@@ -13,6 +13,11 @@ import { io } from 'socket.io-client';
 const AuthContext = createContext();
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL;
+// FIX: robust socket URL fallback (env → server → current origin)
+const SOCKET_URL =
+    import.meta.env.VITE_SOCKET_URL ||
+    SERVER_URL ||
+    (typeof window !== 'undefined' ? window.location.origin : '');
 
 // Centralized axios instance
 const api = axios.create({
@@ -25,7 +30,6 @@ api.interceptors.request.use((config) => {
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
 });
-
 
 export const AuthProvider = ({ children }) => {
     // Synchronous boot from localStorage to avoid race on reload
@@ -41,6 +45,9 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(false); // we already booted synchronously
     const socketRef = useRef(null);
     const refreshPromiseRef = useRef(null); // 🔹 prevents multiple refresh calls
+
+    // FIX: keep socket in state so consumers re-render when it connects
+    const [socket, setSocket] = useState(null);
 
     /* ----------------------------------------------------
        🔹 Helpers (NEW)
@@ -89,6 +96,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('kantevo:accessToken');
             localStorage.removeItem('kantevo:refreshToken');
             if (socketRef.current) socketRef.current.disconnect();
+            setSocket(null); // FIX: clear socket state
             toast.info('Logged out successfully');
         }
     };
@@ -207,12 +215,16 @@ export const AuthProvider = ({ children }) => {
        🔹 SOCKET IO INIT (same)
     ---------------------------------------------------- */
     useEffect(() => {
-        if (!user) return;
+        if (!user || !accessToken) return;
 
-        const newSocket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5050', {
+        // FIX: ensure we always tear down old socket and set state so consumers re-render
+        const newSocket = io(SOCKET_URL, {
             auth: { token: accessToken },
+            transports: ['websocket', 'polling'],
+            withCredentials: true,
         });
         socketRef.current = newSocket;
+        setSocket(newSocket);
 
         if (user.role === 'student') newSocket.emit('joinUser', user._id);
         else if (user.role === 'canteenOwner') {
@@ -220,7 +232,14 @@ export const AuthProvider = ({ children }) => {
             if (canteenId) newSocket.emit('joinCanteen', canteenId);
         }
 
-        return () => newSocket.disconnect();
+        // optional: small debug listeners (no UI changes)
+        // newSocket.on('connect', () => console.debug('Socket connected', newSocket.id));
+        // newSocket.on('disconnect', () => console.debug('Socket disconnected'));
+
+        return () => {
+            newSocket.disconnect();
+            setSocket(null);
+        };
     }, [user, accessToken]);
 
     /* ----------------------------------------------------
@@ -346,7 +365,7 @@ export const AuthProvider = ({ children }) => {
                 isLoggedIn: !!user,
                 loading,
                 api,
-                socket: socketRef.current,
+                socket, // FIX: provide stateful socket
             }}
         >
             {children}

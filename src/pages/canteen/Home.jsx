@@ -196,18 +196,9 @@ const Home = () => {
     const markAsDelivered = async () => {
         try {
             if (!scanResult?._id) return;
-            const res = await api.patch(`/orders/${scanResult._id}/deliver`);
+            await api.patch(`/orders/${scanResult._id}/deliver`);
 
-            // Emit live socket update if available
-            if (user && window.io && res?.data?.order) {
-                try {
-                    const { order } = res.data;
-                    // notify both parties
-                    if (window.socket)
-                        window.socket.emit('orderStatusUpdated', order);
-                } catch (_) { }
-            }
-
+            // FIX: No manual client emit; server already broadcasts to student & canteen rooms.
             toast.success("Order marked as delivered ✅");
             setModalOpen(false);
         } catch (err) {

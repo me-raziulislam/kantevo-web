@@ -109,7 +109,7 @@ const OrderHistory = () => {
             socket.off("orderStatusUpdated", handleOrderUpdate);
             socket.off("paymentStatusUpdated", handlePaymentUpdate);
         };
-    }, [socket]);
+    }, [socket]); // FIX: will re-run because socket is stateful now
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -139,8 +139,9 @@ const OrderHistory = () => {
     };
 
     const getDeliveryText = (order) => {
+        // FIX: show deliveredAt instead of updatedAt
         if (order.deliveredAt) {
-            return `Delivered on ${dayjs(order.updatedAt).format("DD MMM YYYY, HH:mm")}`;
+            return `Delivered on ${dayjs(order.deliveredAt).format("DD MMM YYYY, HH:mm")}`;
         }
         return null;
     };
