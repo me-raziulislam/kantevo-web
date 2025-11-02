@@ -93,6 +93,16 @@ const OrderHistory = () => {
                 prevOrders.map((o) => (o._id === updatedOrder._id ? updatedOrder : o))
             );
             toast.info(`Order ${updatedOrder.token} status updated`);
+
+            // FIX: close QR modal if the updated order is the one currently open
+            // and it is now completed or cancelled
+            if (
+                qrOrder &&
+                qrOrder._id === updatedOrder._id &&
+                ["completed", "cancelled"].includes(updatedOrder.status)
+            ) {
+                setQrOrder(null);
+            }
         };
 
         const handlePaymentUpdate = (updatedOrder) => {
@@ -109,7 +119,7 @@ const OrderHistory = () => {
             socket.off("orderStatusUpdated", handleOrderUpdate);
             socket.off("paymentStatusUpdated", handlePaymentUpdate);
         };
-    }, [socket]); // FIX: will re-run because socket is stateful now
+    }, [socket, qrOrder]); // FIX: will re-run because socket is stateful now
 
     const handleSubmit = (e) => {
         e.preventDefault();
