@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { toast } from "react-toastify";
 import { useAuth } from "../../context/AuthContext";
 import { FaBox, FaClipboardList, FaCheckCircle, FaQrcode, FaChartLine } from "react-icons/fa";
 import { BrowserMultiFormatReader } from "@zxing/browser"; // replaced Html5Qrcode with modern library
@@ -195,11 +196,22 @@ const Home = () => {
     const markAsDelivered = async () => {
         try {
             if (!scanResult?._id) return;
-            await api.patch(`/orders/${scanResult._id}/deliver`);
+            const res = await api.patch(`/orders/${scanResult._id}/deliver`);
+
+            // Emit live socket update if available
+            if (user && window.io && res?.data?.order) {
+                try {
+                    const { order } = res.data;
+                    // notify both parties
+                    if (window.socket)
+                        window.socket.emit('orderStatusUpdated', order);
+                } catch (_) { }
+            }
+
+            toast.success("Order marked as delivered ✅");
             setModalOpen(false);
-            alert("Order marked as delivered ✅");
         } catch (err) {
-            alert("Failed to mark as delivered");
+            toast.error("Failed to mark as delivered");
         }
     };
 
