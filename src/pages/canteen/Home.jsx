@@ -13,7 +13,7 @@ const SkeletonBox = ({ className }) => (
 );
 
 const Home = () => {
-    const { user, api } = useAuth();
+    const { user, api, socket } = useAuth();
     const canteenId = user?.canteen;
 
     const [itemsCount, setItemsCount] = useState(0);
@@ -166,6 +166,110 @@ const Home = () => {
             if (dailyRefreshIntervalRef.current) clearInterval(dailyRefreshIntervalRef.current);
         };
     }, [canteenId, api]);
+
+    // ------------------- SOCKET REAL-TIME UPDATES -------------------
+    useEffect(() => {
+        if (!socket || !canteenId) return;
+
+        // helper to refresh money tiles & chart from backend (single source of truth)
+        const refreshMoneyWidgets = async () => {
+            try {
+                // Pull fresh revenue + counts
+                const statsRes = await api.get(`/canteens/${canteenId}/stats`);
+
+                const ro = statsRes?.data?.revenueAndOrders || {};
+                const normalized = {
+                    revenue: {
+                        today: ro?.day?.totalRevenue || 0,
+                        week: ro?.week?.totalRevenue || 0,
+                        month: ro?.month?.totalRevenue || 0,
+                    },
+                    orders: {
+                        today: ro?.day?.orderCount || 0,
+                        week: ro?.week?.orderCount || 0,
+                        month: ro?.month?.orderCount || 0,
+                    },
+                };
+                setMoneyStats(normalized);
+
+                // most sold
+                const top = statsRes?.data?.mostSoldToday || null;
+                setMostSoldItemToday(top ? { name: top.name, count: top.qty } : null);
+
+                // last 7 days chart
+                const raw7 = Array.isArray(statsRes?.data?.revenueLast7Days)
+                    ? statsRes.data.revenueLast7Days
+                    : [];
+                const map = new Map();
+                raw7.forEach((r) => {
+                    if (!r?._id) return;
+                    const y = r._id.year, m = r._id.month, d = r._id.day;
+                    map.set(`${y}-${m}-${d}`, r.totalRevenue || 0);
+                });
+
+                const today = new Date();
+                const series = [];
+                for (let i = 6; i >= 0; i--) {
+                    const dt = new Date(today);
+                    dt.setDate(today.getDate() - i);
+                    const y = dt.getFullYear();
+                    const m = dt.getMonth() + 1;
+                    const d = dt.getDate();
+                    const key = `${y}-${m}-${d}`;
+                    const label = dt.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+                    series.push({ date: label, revenue: map.get(key) || 0 });
+                }
+                setLast7DaysRevenue(series);
+            } catch (e) {
+                // keep UI as-is on failure
+                console.warn("refreshMoneyWidgets failed:", e?.message || e);
+            }
+        };
+
+        const handleNewOrder = (newOrder) => {
+            if (!newOrder) return;
+
+            // Optionally filter by canteen – uncomment if needed
+            // const incomingCanteenId = String(newOrder.canteen?._id || newOrder.canteen || "");
+            // if (incomingCanteenId !== String(canteenId)) return;
+
+            // Update total orders count
+            setOrdersCount((prev) => (typeof prev === "number" ? prev + 1 : 1));
+
+            // Push into recent list (keep latest 5)
+            setRecentOrders((prev) => [newOrder, ...(prev || [])].slice(0, 5));
+
+            //  Do NOT change revenue/tiles/chart here; payment is usually "pending"
+            try { toast.success(`🆕 New order ${newOrder.token || ""} received`); } catch { }
+        };
+
+        const handlePaymentUpdated = (updatedOrder) => {
+            if (!updatedOrder) return;
+
+            // Update the row in Recent Orders if present
+            setRecentOrders((prev) => {
+                const arr = Array.isArray(prev) ? prev.slice() : [];
+                const idx = arr.findIndex((o) => o._id === updatedOrder._id);
+                if (idx >= 0) arr[idx] = { ...arr[idx], paymentStatus: updatedOrder.paymentStatus };
+                return arr;
+            });
+
+            // Only when money has actually been received
+            if (String(updatedOrder.canteen?._id || updatedOrder.canteen || "") !== String(canteenId)) return;
+            if (updatedOrder.paymentStatus !== "paid") return;
+
+            // Refresh tiles + chart so Today/Week/Month all stay in sync
+            refreshMoneyWidgets();
+        };
+
+        socket.on("newOrder", handleNewOrder);
+        socket.on("paymentUpdated", handlePaymentUpdated);
+
+        return () => {
+            socket.off("newOrder", handleNewOrder);
+            socket.off("paymentUpdated", handlePaymentUpdated);
+        };
+    }, [socket, canteenId, api]);
 
     // Prevent double scans
     const scanningLockedRef = useRef(false);

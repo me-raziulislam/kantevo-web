@@ -225,6 +225,8 @@ export const AuthProvider = ({ children }) => {
         });
         socketRef.current = newSocket;
         setSocket(newSocket);
+        // expose for passive listeners if needed (non-breaking)
+        if (typeof window !== 'undefined') window.socket = newSocket;
 
         if (user.role === 'student') newSocket.emit('joinUser', user._id);
         else if (user.role === 'canteenOwner') {
@@ -239,6 +241,7 @@ export const AuthProvider = ({ children }) => {
         return () => {
             newSocket.disconnect();
             setSocket(null);
+            if (typeof window !== 'undefined' && window.socket === newSocket) delete window.socket;
         };
     }, [user, accessToken]);
 
