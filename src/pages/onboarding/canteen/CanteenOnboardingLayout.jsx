@@ -4,6 +4,7 @@
 
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useAuth } from "../../../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import ScreenTransition from "../../../components/ScreenTransition";
 
@@ -14,12 +15,13 @@ const steps = [
 ];
 
 const CanteenOnboardingLayout = () => {
+    const { completeOnboarding } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
     const [busy, setBusy] = useState(false);
 
     // ✅ NEW: same pattern as student
-    const [formValidity, setFormValidity] = useState({ step1: false, step2: false });
+    const [formValidity, setFormValidity] = useState({ step1: false, step2: false, step3: false });
     const [handleStepNext, setHandleStepNext] = useState(null);
 
     const currentKey = location.pathname.split("/").pop() || "step1";
@@ -37,13 +39,25 @@ const CanteenOnboardingLayout = () => {
     const canProceed =
         (activeIndex === 0 && formValidity.step1) ||
         (activeIndex === 1 && formValidity.step2) ||
-        activeIndex === 2;
+        (activeIndex === 2 && formValidity.step3);
 
     const handleNextClick = async () => {
         if (handleStepNext) {
             const ok = await handleStepNext();
             if (!ok) return;
         }
+
+        // NEW: If this was the last step, complete onboarding
+        if (activeIndex === steps.length - 1) {
+            try {
+                await completeOnboarding();       // call AuthContext method
+                navigate("/canteen/home", { replace: true }); // go to dashboard
+            } catch {
+                toast.error("Failed to complete onboarding");
+            }
+            return;
+        }
+
         goToStep(activeIndex + 1);
     };
 
@@ -102,10 +116,10 @@ const CanteenOnboardingLayout = () => {
                         </button>
                         <button
                             onClick={handleNextClick}
-                            disabled={!canProceed || activeIndex === steps.length - 1}
+                            disabled={!canProceed}
                             className="px-5 py-2 rounded-lg bg-primary text-white disabled:opacity-50"
                         >
-                            Next
+                            {activeIndex === steps.length - 1 ? "Finish" : "Next"}
                         </button>
                     </div>
                 </div>

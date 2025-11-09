@@ -16,7 +16,6 @@ const Step2MenuDetails = () => {
     const [cuisines, setCuisines] = useState(existing?.cuisines || []);
     const [openTime, setOpenTime] = useState(existing?.openingTime || "09:00");
     const [closeTime, setCloseTime] = useState(existing?.closingTime || "18:00");
-    const [upiId, setUpiId] = useState(existing?.upiId || "");
     const [specialOpenings, setSpecialOpenings] = useState(
         Array.isArray(existing?.specialOpenings)
             ? existing.specialOpenings.map(d => (typeof d === 'string' ? d.slice(0, 10) : new Date(d).toISOString().slice(0, 10)))
@@ -34,7 +33,7 @@ const Step2MenuDetails = () => {
     const timeOk =
         /^([01]\d|2[0-3]):([0-5]\d)$/.test(openTime) &&
         /^([01]\d|2[0-3]):([0-5]\d)$/.test(closeTime);
-    const valid = restaurantName && cuisines.length > 0 && upiId && timeOk;
+    const valid = restaurantName && cuisines.length > 0 && timeOk;
 
     const tags = ["North Indian", "South Indian", "Fast Food", "Chinese", "Biryani", "Pizza"];
 
@@ -66,7 +65,6 @@ const Step2MenuDetails = () => {
                     cuisines,
                     openTime,
                     closeTime,
-                    upiId,
                     specialOpenings, // send as 'YYYY-MM-DD' strings, backend converts to Date
                     specialClosings,
                     isOpenOnSunday,
@@ -85,7 +83,6 @@ const Step2MenuDetails = () => {
         cuisines,
         openTime,
         closeTime,
-        upiId,
         specialOpenings,
         specialClosings,
         isOpenOnSunday,
@@ -97,7 +94,7 @@ const Step2MenuDetails = () => {
     return (
         <div className="space-y-5">
             <h2 className="text-2xl font-extrabold">Canteen setup</h2>
-            <p className="text-text/70">Set up your restaurant name, timings, and payment info.</p>
+            <p className="text-text/70">Set up your restaurant name, timings, and details.</p>
 
             <input
                 className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-background"
@@ -144,14 +141,6 @@ const Step2MenuDetails = () => {
                     />
                 </label>
             </div>
-
-            {/* UPI ID */}
-            <input
-                className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-background"
-                placeholder="UPI ID (e.g. canteen@upi)"
-                value={upiId}
-                onChange={(e) => setUpiId(e.target.value)}
-            />
 
             {/* Optional about + Sunday open */}
             <div className="grid md:grid-cols-2 gap-4">

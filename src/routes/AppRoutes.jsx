@@ -107,7 +107,7 @@ const AppRoutes = () => {
 
             {/* Legal */}
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/terms-of-use" element={<TermsOfUse />} />
+            <Route path="/terms-of-service" element={<TermsOfUse />} />
             <Route path="/refund-policy" element={<RefundPolicy />} />
             <Route path="/return-policy" element={<ReturnPolicy />} />
             <Route path="/about" element={<About />} />
