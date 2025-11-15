@@ -17,7 +17,7 @@ export default function TermsOfUse() {
                 <p className="mt-2 text-sm text-text/70">Operated by: <strong>Kantevo</strong> (Registered under Udyam MSME Scheme, India)</p>
                 <p className="mt-1 text-sm text-text/70">Last updated: November 2025</p>
                 <p className="mt-4 text-lg text-text/80 leading-relaxed">
-                    Welcome to <strong>Kantevo</strong>—a digital platform that helps students pre-order from verified campus canteens. By accessing or
+                    Welcome to <strong>Kantevo</strong> (by Raziul Islam & Team)—a digital platform that helps students pre-order from verified campus canteens. By accessing or
                     using Kantevo’s website, mobile app, or related APIs (the “Platform”), you agree to these Terms of Service (“Terms”) and to our
                     other policies referenced here (Privacy Policy, Refund & Cancellation Policy, etc.).
                 </p>
@@ -191,7 +191,7 @@ export default function TermsOfUse() {
                         <li>These Terms, along with our Privacy Policy and Refund & Cancellation Policy, form the entire agreement.</li>
                         <li>If any provision is unenforceable, the remainder remains in effect.</li>
                         <li>No partnership, employment, or agency relationship is created by these Terms.</li>
-                        <li>Governing Law: India; exclusive jurisdiction of the courts in <strong>[Your City]</strong>.</li>
+                        <li>Governing Law: India; exclusive jurisdiction of the courts in <strong>India</strong>.</li>
                         <li>Any claim must be initiated within one (1) year from when it arose.</li>
                     </ul>
                 </section>
