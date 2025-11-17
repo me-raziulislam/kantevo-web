@@ -92,7 +92,7 @@ export default function About() {
                     <a href="mailto:support@kantevo.com" className="text-primary">
                         support@kantevo.com
                     </a>{" "}</p>
-                {/* <p className="text-text/80 mb-1">📞 Phone: +91-XXXXXXXXXX</p> */}
+                <p className="text-text/80 mb-1">📞 Phone: +91-8135812526</p>
                 <p className="text-text/80 mb-1">🌐 Website: www.kantevo.com</p>
                 <p className="text-text/80 mb-4">⏰ Working Hours: Monday – Saturday, 9:00 AM – 4:00 PM</p>
                 {/* <a
