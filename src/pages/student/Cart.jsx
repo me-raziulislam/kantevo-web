@@ -17,8 +17,44 @@ const Cart = () => {
     const [loadingItem, setLoadingItem] = useState(null);
     const [clearing, setClearing] = useState(false);
     const [processing, setProcessing] = useState(false);
-    const [paymentMethod, setPaymentMethod] = useState("offline");
 
+    // NEW — pickup time state
+    const [pickupTime, setPickupTime] = useState("");
+    const [customTime, setCustomTime] = useState("");
+    const [isCustomMode, setIsCustomMode] = useState(false);
+    const [timeSlots, setTimeSlots] = useState([]);
+
+    // -----------------------------
+    // Generate time slots
+    // -----------------------------
+    const generateTimeSlots = () => {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() + 30); // First slot = now + 30m
+
+        const slots = [];
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 45, 0, 0);
+
+        const cur = new Date(now);
+
+        while (cur <= endOfDay) {
+            const h = cur.getHours().toString().padStart(2, "0");
+            const m = cur.getMinutes().toString().padStart(2, "0");
+            slots.push(`${h}:${m}`);
+            cur.setMinutes(cur.getMinutes() + 15);
+        }
+
+        setTimeSlots(slots);
+
+        // Default first slot
+        if (!pickupTime && slots.length > 0) setPickupTime(slots[0]);
+    };
+
+    useEffect(() => {
+        generateTimeSlots();
+    }, []);
+
+    // -----------------------------
     // Fetch cart items
     const fetchCart = async () => {
         setLoading(true);
@@ -117,10 +153,42 @@ const Cart = () => {
     const gstAmount = (itemTotal * GST_PERCENT) / 100;
     const grandTotal = itemTotal + gstAmount + CANTEEN_CHARGE + PLATFORM_FEE;
 
-    // Checkout handler
+    // ----------------------------------
+    // Validate custom time (HH:mm)
+    // ----------------------------------
+    const validateCustomTime = () => {
+        if (!customTime) return false;
+
+        const [ch, cm] = customTime.split(":").map(Number);
+        const customDate = new Date();
+        customDate.setHours(ch, cm, 0, 0);
+
+        const minAllowed = new Date();
+        minAllowed.setMinutes(minAllowed.getMinutes() + 30);
+
+        return customDate >= minAllowed;
+    };
+
+    // ----------------------------------
+    // Checkout handler (ONLINE ONLY)
+    // ----------------------------------
     const handleCheckout = async () => {
         if (cart.length === 0) {
             toast.info("Your cart is empty");
+            return;
+        }
+
+        if (isCustomMode) {
+            if (!customTime || !validateCustomTime()) {
+                toast.error("Custom time must be at least 30 minutes from now.");
+                return;
+            }
+        }
+
+        const finalPickupTime = isCustomMode ? customTime : pickupTime;
+
+        if (!finalPickupTime) {
+            toast.error("Please select a pickup time.");
             return;
         }
 
@@ -140,38 +208,93 @@ const Cart = () => {
         setProcessing(true);
 
         try {
-            // Step 1: Create order in backend
-            const res = await api.post("/orders", {
+            // OPTION A FLOW: Create a PaymentIntent — NOT an Order
+            const paymentIntent = await api.post("/payments/initiate", {
                 canteen: canteenId,
                 items: orderItems,
                 totalPrice: Number(grandTotal),
-                paymentMethod,
+                pickupTime: finalPickupTime, // <--- IMPORTANT
             });
 
-            if (paymentMethod === "offline") {
-                // Offline payment
-                toast.success(`Order placed! Token: ${res.data.token}`);
-                await handleClearCart();
+            if (paymentIntent.data?.redirectUrl) {
+                // Clear cart right before redirect
+                await api.delete("/cart");
+                window.location.href = paymentIntent.data.redirectUrl;
             } else {
-                // Online payment flow (PhonePe)
-                const createdOrderId = res.data._id;
-
-                // Step 2: Initiate payment with backend
-                const paymentRes = await api.post("/payments/initiate", {
-                    orderId: createdOrderId,
-                    amount: Number(grandTotal),
-                });
-
-                if (paymentRes.data?.redirectUrl) window.location.href = paymentRes.data.redirectUrl;
-                else toast.error("Failed to start payment, please try again.");
+                toast.error("Failed to start payment, please try again.");
             }
         } catch (err) {
-            const msg = err.response?.data?.error || err.response?.data?.message || "Order creation failed";
+            const msg = err.response?.data?.error || err.response?.data?.message || "Checkout failed";
             toast.error(msg);
         } finally {
             setProcessing(false);
         }
     };
+
+    // ---------------------------------------
+    // UI — TIME PICKER (Option 3 Scroll UI)
+    // ---------------------------------------
+    const renderTimePicker = () => (
+        <div className="p-4 border rounded-2xl bg-background shadow-sm mb-6">
+            <h3 className="font-semibold text-primary mb-2">Select Pickup Time ⏱</h3>
+
+            {/* Toggle between preset slots and custom time */}
+            <div className="flex gap-4 mb-4">
+                <button
+                    className={`px-4 py-2 rounded-full text-sm font-medium ${!isCustomMode
+                        ? "bg-primary text-white"
+                        : "bg-gray-200 dark:bg-gray-800"
+                        }`}
+                    onClick={() => setIsCustomMode(false)}
+                >
+                    Choose Slot
+                </button>
+
+                <button
+                    className={`px-4 py-2 rounded-full text-sm font-medium ${isCustomMode
+                        ? "bg-primary text-white"
+                        : "bg-gray-200 dark:bg-gray-800"
+                        }`}
+                    onClick={() => setIsCustomMode(true)}
+                >
+                    Custom Time
+                </button>
+            </div>
+
+            {/* PRESET TIME SLOTS (scroll style) */}
+            {!isCustomMode && (
+                <div className="max-h-48 overflow-y-auto border rounded-xl p-3 space-y-2">
+                    {timeSlots.map((slot) => (
+                        <div
+                            key={slot}
+                            onClick={() => setPickupTime(slot)}
+                            className={`p-2 rounded-lg cursor-pointer text-sm ${pickupTime === slot
+                                ? "bg-primary text-white"
+                                : "bg-gray-100 dark:bg-gray-800 text-text"
+                                }`}
+                        >
+                            {slot}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* CUSTOM TIME INPUT */}
+            {isCustomMode && (
+                <div className="mt-4">
+                    <input
+                        type="time"
+                        value={customTime}
+                        onChange={(e) => setCustomTime(e.target.value)}
+                        className="p-3 rounded-xl border w-full dark:bg-gray-800"
+                    />
+                    <p className="text-xs text-text/60 mt-1">
+                        Must be minimum 30 minutes from now.
+                    </p>
+                </div>
+            )}
+        </div>
+    );
 
     return (
         <div className="max-w-5xl mx-auto p-6 space-y-8 bg-background text-text transition-colors duration-300">
@@ -195,27 +318,8 @@ const Cart = () => {
                 </motion.div>
             ) : (
                 <>
-                    {/* Payment method selection */}
-                    <div className="flex gap-6 mb-4 text-text">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                                type="radio"
-                                value="offline"
-                                checked={paymentMethod === "offline"}
-                                onChange={(e) => setPaymentMethod(e.target.value)}
-                            />
-                            Offline Payment
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                                type="radio"
-                                value="online"
-                                checked={paymentMethod === "online"}
-                                onChange={(e) => setPaymentMethod(e.target.value)}
-                            />
-                            Online Payment
-                        </label>
-                    </div>
+                    {/* --- TIME PICKER (NEW) --- */}
+                    {renderTimePicker()}
 
                     {/* Cart Items */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -282,17 +386,6 @@ const Cart = () => {
                         animate={{ opacity: 1, y: 0 }}
                         className="p-6 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm bg-background"
                     >
-                        <div
-                            className={`mb-3 p-2 rounded text-sm font-medium text-center ${paymentMethod === "offline"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-blue-100 text-blue-800"
-                                }`}
-                        >
-                            {paymentMethod === "offline"
-                                ? "You will pay at the canteen counter"
-                                : "You will pay online securely"}
-                        </div>
-
                         <h2 className="text-xl font-bold text-primary mb-2">Bill Summary</h2>
                         <div className="space-y-1 text-sm text-text/80">
                             <p>Item Total: ₹{itemTotal.toFixed(2)}</p>
@@ -320,13 +413,7 @@ const Cart = () => {
                             className="bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-full font-semibold transition"
                             disabled={processing || clearing}
                         >
-                            {processing
-                                ? paymentMethod === "offline"
-                                    ? "Placing order..."
-                                    : "Processing payment..."
-                                : paymentMethod === "offline"
-                                    ? "Proceed to order"
-                                    : "Pay and order"}
+                            {processing ? "Processing..." : "Pay & Order"}
                         </button>
                     </div>
                 </>

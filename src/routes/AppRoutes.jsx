@@ -15,6 +15,10 @@ import OrderHistory from '../pages/student/OrderHistory';
 import Profile from '../pages/student/Profile';
 import PaymentVerification from '../pages/student/PaymentVerification';
 
+// Payment
+import PaymentRedirect from "../pages/payment/PaymentRedirect";
+import PaymentPending from "../pages/payment/PaymentPending";
+
 // Admin
 import AdminDashboard from '../pages/AdminDashboard';
 import CollegeManager from '../pages/admin/CollegeManager';
@@ -141,6 +145,10 @@ const AppRoutes = () => {
                 <Route path="step3" element={<Step3CanteenDocs />} />
                 <Route index element={<Navigate to="step1" replace />} />
             </Route>
+
+            {/* Payment Redirects */}
+            <Route path="/payment/verify/:merchantOrderId" element={<PaymentRedirect />} />
+            <Route path="/payment/pending/:merchantOrderId" element={<PaymentPending />} />
 
             {/* Student */}
             <Route element={<ProtectedRoute allowedRoles={['student']} />}>
