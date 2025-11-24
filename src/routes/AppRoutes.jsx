@@ -13,7 +13,6 @@ import CanteenPage from "../pages/student/CanteenPage";
 import Cart from '../pages/student/Cart';
 import OrderHistory from '../pages/student/OrderHistory';
 import Profile from '../pages/student/Profile';
-import PaymentVerification from '../pages/student/PaymentVerification';
 
 // Payment
 import PaymentRedirect from "../pages/payment/PaymentRedirect";
@@ -107,7 +106,6 @@ const AppRoutes = () => {
         <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/partner-with-us" element={<PartnerWithKantevo />} />
-            <Route path="/payment/verify/:orderId" element={<PaymentVerification />} />
 
             {/* Legal */}
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
