@@ -1,11 +1,11 @@
-// src/pages/payment/PaymentPending.jsx
+// pages/payment/PaymentPending.jsx
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
 import SEO from "../../components/SEO";
 
-const POLL_INTERVAL_MS = 3000; // 3 seconds
+const POLL_INTERVAL_MS = 3000;
 
 const PaymentPending = () => {
     const { merchantOrderId } = useParams();
@@ -23,30 +23,31 @@ const PaymentPending = () => {
             const st = (res.data?.state || res.data?.status || "").toString().toLowerCase();
             setStatus(st);
             setRaw(res.data?.raw || res.data);
+
             if (st === "paid" || st === "success") {
-                toast.success("Payment completed! Redirecting to Orders...");
+                toast.success("Payment completed!");
                 clearInterval(pollingRef.current);
-                // small delay to allow toast to show
-                setTimeout(() => navigate("/student/orders"), 900);
+                setTimeout(() => navigate("/student/orders"), 800);
                 return;
             }
+
             if (st === "failed") {
-                toast.error("Payment failed. Please try again from your Cart.");
+                toast.error("Payment failed. Try again from cart.");
                 clearInterval(pollingRef.current);
                 setLoading(false);
                 return;
             }
+
             setLoading(false);
         } catch (err) {
             console.warn("Polling error:", err);
-            // keep polling — we don't want transient network errors to cancel the flow
             setLoading(false);
         }
     };
 
     useEffect(() => {
         if (!merchantOrderId) {
-            toast.error("Missing payment reference");
+            toast.error("Missing reference");
             return navigate("/student/cart");
         }
 
@@ -68,23 +69,26 @@ const PaymentPending = () => {
             <div className="p-6 rounded-2xl border bg-background">
                 <h2 className="text-xl font-semibold text-primary mb-2">Payment pending</h2>
                 <p className="text-sm text-text/70">
-                    We're waiting for the payment to complete for <strong>{merchantOrderId}</strong>. This may take a few moments.
+                    Waiting for confirmation for <strong>{merchantOrderId}</strong>.
                 </p>
 
-                <div className="mt-4">
-                    <p className="text-sm">Current status: <strong className="capitalize">{status}</strong></p>
-                    {loading && <p className="text-sm text-text/60 mt-2">Checking status…</p>}
-                </div>
+                <p className="mt-4 text-sm">
+                    Current status:{" "}
+                    <strong className="capitalize">{status}</strong>
+                </p>
 
                 {status === "failed" && (
-                    <div className="mt-4 flex gap-3">
-                        <button onClick={() => navigate("/student/cart")} className="px-4 py-2 rounded-full bg-primary text-white">
-                            Back to Cart
-                        </button>
-                    </div>
+                    <button
+                        onClick={() => navigate("/student/cart")}
+                        className="mt-4 px-4 py-2 rounded-full bg-primary text-white"
+                    >
+                        Back to Cart
+                    </button>
                 )}
 
-                <pre className="mt-4 p-3 bg-gray-50 dark:bg-gray-900 text-xs rounded">{JSON.stringify(raw, null, 2)}</pre>
+                <pre className="mt-4 p-3 rounded text-xs bg-gray-50 dark:bg-gray-900">
+                    {JSON.stringify(raw, null, 2)}
+                </pre>
             </div>
         </div>
     );

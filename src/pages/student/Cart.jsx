@@ -56,6 +56,7 @@ const Cart = () => {
 
     // -----------------------------
     // Fetch cart items
+    // -----------------------------
     const fetchCart = async () => {
         setLoading(true);
         try {
@@ -150,8 +151,7 @@ const Cart = () => {
 
     // ---- Calculations ----
     const itemTotal = cart.reduce((sum, ci) => sum + ci.quantity * ci.item.price, 0);
-    const gstAmount = (itemTotal * GST_PERCENT) / 100;
-    const grandTotal = itemTotal + gstAmount + CANTEEN_CHARGE + PLATFORM_FEE;
+    const grandTotal = itemTotal + PLATFORM_FEE;
 
     // ----------------------------------
     // Validate custom time (HH:mm)
@@ -213,12 +213,10 @@ const Cart = () => {
                 canteen: canteenId,
                 items: orderItems,
                 totalPrice: Number(grandTotal),
-                pickupTime: finalPickupTime, // <--- IMPORTANT
+                pickupTime: finalPickupTime,
             });
 
             if (paymentIntent.data?.redirectUrl) {
-                // Clear cart right before redirect
-                await api.delete("/cart");
                 window.location.href = paymentIntent.data.redirectUrl;
             } else {
                 toast.error("Failed to start payment, please try again.");
@@ -232,7 +230,7 @@ const Cart = () => {
     };
 
     // ---------------------------------------
-    // UI — TIME PICKER (Option 3 Scroll UI)
+    // UI — TIME PICKER (Scrollable UI)
     // ---------------------------------------
     const renderTimePicker = () => (
         <div className="p-4 border rounded-2xl bg-background shadow-sm mb-6">
@@ -261,7 +259,7 @@ const Cart = () => {
                 </button>
             </div>
 
-            {/* PRESET TIME SLOTS (scroll style) */}
+            {/* PRESET TIME SLOTS */}
             {!isCustomMode && (
                 <div className="max-h-48 overflow-y-auto border rounded-xl p-3 space-y-2">
                     {timeSlots.map((slot) => (
@@ -279,7 +277,7 @@ const Cart = () => {
                 </div>
             )}
 
-            {/* CUSTOM TIME INPUT */}
+            {/* CUSTOM TIME */}
             {isCustomMode && (
                 <div className="mt-4">
                     <input
@@ -318,7 +316,6 @@ const Cart = () => {
                 </motion.div>
             ) : (
                 <>
-                    {/* --- TIME PICKER (NEW) --- */}
                     {renderTimePicker()}
 
                     {/* Cart Items */}
@@ -389,10 +386,11 @@ const Cart = () => {
                         <h2 className="text-xl font-bold text-primary mb-2">Bill Summary</h2>
                         <div className="space-y-1 text-sm text-text/80">
                             <p>Item Total: ₹{itemTotal.toFixed(2)}</p>
-                            <p>GST ({GST_PERCENT}%): ₹{gstAmount.toFixed(2)}</p>
-                            <p>Canteen Charges: ₹{CANTEEN_CHARGE.toFixed(2)}</p>
+
+                            {/* UPDATED: showing only platform fee */}
                             <p>Platform Fee: ₹{PLATFORM_FEE.toFixed(2)}</p>
                         </div>
+
                         <h3 className="text-lg font-bold mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 text-primary">
                             To Pay: ₹{grandTotal.toFixed(2)}
                         </h3>
