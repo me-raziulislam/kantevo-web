@@ -61,10 +61,11 @@ const OrderHistory = () => {
                     setOrders(fetchedOrders);
                 }
 
-                if (fetchedOrders.length < LIMIT) {
-                    setHasMore(false);
-                } else {
-                    setHasMore(true);
+                // FIX: correct hasMore logic
+                setHasMore(fetchedOrders.length === LIMIT);
+
+                // FIX: store last cursor correctly
+                if (fetchedOrders.length > 0) {
                     lastCreatedAtRef.current = fetchedOrders[fetchedOrders.length - 1].createdAt;
                 }
             } catch (err) {
