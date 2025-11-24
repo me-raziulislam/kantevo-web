@@ -4,6 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
 import SEO from "../../components/SEO";
+import SuccessAnimation from "../../components/SuccessAnimation"; // NEW
 
 const PaymentRedirect = () => {
     const { merchantOrderId } = useParams();
@@ -12,7 +13,6 @@ const PaymentRedirect = () => {
 
     const [loading, setLoading] = useState(true);
     const [status, setStatus] = useState(null);
-    const [raw, setRaw] = useState(null);
 
     useEffect(() => {
         if (!merchantOrderId) {
@@ -26,13 +26,12 @@ const PaymentRedirect = () => {
             try {
                 const res = await api.get(`/payments/status/${merchantOrderId}`);
                 const state = (res.data?.state || res.data?.status || "").toString().toLowerCase();
-
                 setStatus(state);
-                setRaw(res.data?.raw || res.data);
 
                 if (state === "paid" || state === "success") {
-                    toast.success("Payment successful! Redirecting...");
-                    setTimeout(() => navigate("/student/orders"), 900);
+                    toast.success("Payment successful!");
+                    // Delay redirect to show success animation
+                    setTimeout(() => navigate("/student/orders"), 1500);
                     return;
                 }
 
@@ -53,14 +52,16 @@ const PaymentRedirect = () => {
         };
 
         if (!authLoading) fetchStatus();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [merchantOrderId, authLoading]);
 
     return (
         <div className="max-w-3xl mx-auto p-6 space-y-6">
             <SEO title="Processing Payment..." />
             <div className="p-6 rounded-2xl border bg-background">
-                <h2 className="text-xl font-semibold text-primary mb-2">Processing your payment…</h2>
+                <h2 className="text-xl font-semibold text-primary mb-2">
+                    Processing your payment…
+                </h2>
+
                 <p className="text-sm text-text/70">
                     Checking payment status for <strong>{merchantOrderId}</strong>.
                 </p>
@@ -69,24 +70,32 @@ const PaymentRedirect = () => {
                     <div className="mt-4 text-sm text-text/60">Checking status…</div>
                 ) : (
                     <>
-                        <p className="mt-4 text-sm">
-                            Current state: <strong className="capitalize">{status}</strong>
-                        </p>
-
-                        {status === "failed" && (
-                            <div className="mt-3">
-                                <button
-                                    onClick={() => navigate("/student/cart")}
-                                    className="px-4 py-2 rounded-full bg-primary text-white"
-                                >
-                                    Back to Cart
-                                </button>
+                        {status === "paid" || status === "success" ? (
+                            <div className="mt-6">
+                                <SuccessAnimation size={180} />
+                                <p className="mt-4 text-green-600 font-semibold text-center">
+                                    Payment Successful!
+                                </p>
                             </div>
-                        )}
+                        ) : (
+                            <>
+                                <p className="mt-4 text-sm">
+                                    Current state:{" "}
+                                    <strong className="capitalize">{status}</strong>
+                                </p>
 
-                        <pre className="mt-4 p-3 bg-gray-50 dark:bg-gray-900 rounded text-xs">
-                            {JSON.stringify(raw, null, 2)}
-                        </pre>
+                                {status === "failed" && (
+                                    <div className="mt-3">
+                                        <button
+                                            onClick={() => navigate("/student/cart")}
+                                            className="px-4 py-2 rounded-full bg-primary text-white"
+                                        >
+                                            Back to Cart
+                                        </button>
+                                    </div>
+                                )}
+                            </>
+                        )}
                     </>
                 )}
             </div>

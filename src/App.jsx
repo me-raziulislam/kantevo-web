@@ -37,6 +37,7 @@ function App() {
     location.pathname.startsWith("/student") ||
     location.pathname.startsWith("/admin") ||
     location.pathname.startsWith("/canteen") ||
+    location.pathname.startsWith("/payment") ||
     location.pathname.startsWith("/onboarding"); // also hide during onboarding
   const showFooter = !hideFooter;
 
