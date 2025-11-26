@@ -18,6 +18,8 @@ const AdminDashboard = () => {
         { to: '/admin/colleges', label: 'Manage Colleges' },
         { to: '/admin/canteens', label: 'Manage Canteens' },
         { to: '/admin/orders', label: 'View Orders' },
+        { to: '/admin/settlements-create', label: 'Create Settlement' },
+        { to: '/admin/settlements', label: 'Settlements' },
     ];
 
     return (

@@ -18,6 +18,7 @@ const CanteenDashboard = () => {
         { to: '/canteen/home', label: 'Home' },
         { to: '/canteen/items', label: 'Items' },
         { to: '/canteen/orders', label: 'Orders' },
+        { to: '/canteen/settlements', label: 'Settlements' },
         { to: '/canteen/profile', label: 'Profile' },
     ];
 

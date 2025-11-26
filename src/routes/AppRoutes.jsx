@@ -23,12 +23,17 @@ import AdminDashboard from '../pages/AdminDashboard';
 import CollegeManager from '../pages/admin/CollegeManager';
 import CanteenManager from '../pages/admin/CanteenManager';
 import OrderViewer from '../pages/admin/OrderViewer';
+import AdminSettlementList from '../pages/admin/AdminSettlementList';
+import AdminSettlementDetails from '../pages/admin/AdminSettlementDetails';
+import AdminSettlementCreate from '../pages/admin/AdminSettlementCreate';
 
 // Canteen
 import CanteenDashboard from '../pages/CanteenDashboard'; // layout
 import CanteenHome from '../pages/canteen/Home';
 import ItemManager from '../pages/canteen/ItemManager';
 import OrderManager from '../pages/canteen/OrderManager';
+import SettlementPage from '../pages/canteen/Settlements';
+import CanteenSettlementDetails from '../pages/canteen/CanteenSettlementDetails';
 import CanteenProfile from '../pages/canteen/Profile';
 
 // NEW: Onboarding pages
@@ -167,6 +172,8 @@ const AppRoutes = () => {
                     <Route path="home" element={<CanteenHome />} />
                     <Route path="items" element={<ItemManager />} />
                     <Route path="orders" element={<OrderManager />} />
+                    <Route path="settlements" element={<SettlementPage />} />
+                    <Route path="settlements/:id" element={<CanteenSettlementDetails />} />
                     <Route path="profile" element={<CanteenProfile />} />
                 </Route>
             </Route>
@@ -177,6 +184,9 @@ const AppRoutes = () => {
                     <Route path="colleges" element={<CollegeManager />} />
                     <Route path="canteens" element={<CanteenManager />} />
                     <Route path="orders" element={<OrderViewer />} />
+                    <Route path="settlements-create" element={<AdminSettlementCreate />} />
+                    <Route path="settlements" element={<AdminSettlementList />} />
+                    <Route path="settlements/:id" element={<AdminSettlementDetails />} />
                     <Route index element={<Navigate to="/admin/colleges" />} />
                 </Route>
             </Route>
