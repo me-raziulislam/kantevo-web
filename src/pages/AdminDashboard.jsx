@@ -43,7 +43,7 @@ const AdminDashboard = () => {
                             to={link.to}
                             className={({ isActive }) =>
                                 `px-4 py-2 rounded text-left transition-colors duration-200 ${isActive
-                                    ? 'bg-primary text-white font-semibold'
+                                    ? 'bg-primary/10 text-primary font-semibold'
                                     : 'hover:bg-primary/10 text-text'
                                 }`
                             }

@@ -7,31 +7,35 @@
    Light theme variables
 ------------------------- */
 :root {
-    --color-primary: #4d7c0f;
-    /* lime-500 */
-    --color-primary-dark: #436f08;
-    /* darker lime */
+    --color-primary: #D9272E;
+    /* Crimson Punch */
+    --color-primary-dark: #B31E24;
+    /* Deep Crimson */
     --color-bg: #f9fafb;
-    /* light background */
-    --color-bg-card: #fff;
-    /* light card background */
+    /* Light background */
+    --color-bg-card: #ffffff;
+    /* Light card */
     --color-text: #1f2937;
-    /* gray-800 */
+    /* Gray-800 */
+    --color-accent: #FFB02E;
+    /* Premium Amber */
 }
 
 /* ------------------------
    Dark theme variables
 ------------------------- */
 .dark {
-    --color-primary: #4d7c0f;
-    /* keep same if you want */
-    --color-primary-dark: #436f08;
-    --color-bg: #111827;
-    /* dark background */
-    --color-bg-card: #1f2937;
-    /* dark card background */
+    --color-primary: #D9272E;
+    /* Same branding */
+    --color-primary-dark: #B31E24;
+    --color-bg: #0F0F11;
+    /* Deep charcoal */
+    --color-bg-card: #1A1A1D;
+    /* Card contrast */
     --color-text: #f9fafb;
-    /* white-ish */
+    /* White-ish */
+    --color-accent: #FFB02E;
+    /* Premium Amber */
 }
 
 /* ------------------------
@@ -44,6 +48,7 @@
     --color-background: var(--color-bg);
     --color-background-card: var(--color-bg-card);
     --color-text: var(--color-text);
+    --color-accent: var(--color-accent);
 }
 
 /* ------------------------

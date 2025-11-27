@@ -137,8 +137,8 @@ const Navbar = () => {
                                                 user.role === "student"
                                                     ? "/student/profile"
                                                     : user.role === "canteenOwner"
-                                                    ? "/canteen/profile"
-                                                    : "/admin/colleges"
+                                                        ? "/canteen/profile"
+                                                        : "/admin/colleges"
                                             }
                                             className="block px-4 py-2 text-sm hover:bg-primary/10"
                                             onClick={() => setOpenMenu(false)}
@@ -195,7 +195,14 @@ const Navbar = () => {
                                                     className="block px-4 py-2 text-sm hover:bg-primary/10"
                                                     onClick={() => setOpenMenu(false)}
                                                 >
-                                                    Orders
+                                                    Manage Orders
+                                                </Link>
+                                                <Link
+                                                    to="/canteen/settlements"
+                                                    className="block px-4 py-2 text-sm hover:bg-primary/10"
+                                                    onClick={() => setOpenMenu(false)}
+                                                >
+                                                    Settlements
                                                 </Link>
                                             </>
                                         )}

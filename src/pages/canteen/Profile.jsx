@@ -299,7 +299,7 @@ const Profile = () => {
                 <form onSubmit={handleCanteenSave} className="space-y-4">
 
                     {/* UPI ID */}
-                    <div>
+                    {/* <div>
                         <label className="block font-medium mb-1">UPI ID</label>
                         <input
                             type="text"
@@ -309,10 +309,10 @@ const Profile = () => {
                             placeholder="canteen@upi"
                             className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2"
                         />
-                    </div>
+                    </div> */}
 
                     {/* UPI QR */}
-                    <div className="flex items-center space-x-4">
+                    {/* <div className="flex items-center space-x-4">
                         <div className="w-28 h-28 rounded border border-gray-300 dark:border-gray-600 overflow-hidden">
                             <img
                                 src={
@@ -341,7 +341,7 @@ const Profile = () => {
                                 className="hidden"
                             />
                         </div>
-                    </div>
+                    </div> */}
 
                     <div className="flex items-center space-x-2">
                         <input
