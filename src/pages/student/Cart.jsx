@@ -1,14 +1,20 @@
 // pages/student/Cart.jsx
+// Premium cart page
+
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
+import { 
+    ShoppingCartIcon, 
+    TrashIcon, 
+    ClockIcon,
+    MinusIcon,
+    PlusIcon
+} from "@heroicons/react/24/outline";
 import SEO from "../../components/SEO";
 
-// ---- Configurable charges ----
-const GST_PERCENT = 0; // %
-const CANTEEN_CHARGE = 0; // flat ₹
-const PLATFORM_FEE = 1; // flat ₹
+const PLATFORM_FEE = 1;
 
 const Cart = () => {
     const { user, api, socket, accessToken, loading: authLoading } = useAuth();
@@ -18,23 +24,17 @@ const Cart = () => {
     const [clearing, setClearing] = useState(false);
     const [processing, setProcessing] = useState(false);
 
-    // NEW — pickup time state
     const [pickupTime, setPickupTime] = useState("");
     const [customTime, setCustomTime] = useState("");
     const [isCustomMode, setIsCustomMode] = useState(false);
     const [timeSlots, setTimeSlots] = useState([]);
 
-    // -----------------------------
-    // Generate time slots
-    // -----------------------------
     const generateTimeSlots = () => {
         const now = new Date();
-        now.setMinutes(now.getMinutes() + 30); // First slot = now + 30m
-
+        now.setMinutes(now.getMinutes() + 30);
         const slots = [];
         const endOfDay = new Date();
         endOfDay.setHours(23, 45, 0, 0);
-
         const cur = new Date(now);
 
         while (cur <= endOfDay) {
@@ -43,10 +43,7 @@ const Cart = () => {
             slots.push(`${h}:${m}`);
             cur.setMinutes(cur.getMinutes() + 15);
         }
-
         setTimeSlots(slots);
-
-        // Default first slot
         if (!pickupTime && slots.length > 0) setPickupTime(slots[0]);
     };
 
@@ -54,9 +51,6 @@ const Cart = () => {
         generateTimeSlots();
     }, []);
 
-    // -----------------------------
-    // Fetch cart items
-    // -----------------------------
     const fetchCart = async () => {
         setLoading(true);
         try {
@@ -74,18 +68,10 @@ const Cart = () => {
         fetchCart();
     }, [api, accessToken, authLoading]);
 
-    // ------------------- SOCKET LISTENER -------------------
     useEffect(() => {
         if (!socket) return;
-
-        const handleNewOrder = (order) => {
-            toast.success(`🎉 New order placed! Token: ${order.token}`);
-        };
-
-        const handleOrderStatus = ({ orderId, status }) => {
-            toast.info(`Order #${orderId} status: ${status}`);
-        };
-
+        const handleNewOrder = (order) => toast.success(`🎉 Order placed! Token: ${order.token}`);
+        const handleOrderStatus = ({ orderId, status }) => toast.info(`Order #${orderId} status: ${status}`);
         const handlePaymentUpdate = ({ orderId, paymentStatus }) => {
             if (paymentStatus === "success") toast.success(`✅ Payment successful for order #${orderId}`);
             else toast.error(`❌ Payment failed for order #${orderId}`);
@@ -102,7 +88,6 @@ const Cart = () => {
         };
     }, [socket]);
 
-    // Update quantity
     const handleQuantityChange = async (itemId, quantity) => {
         if (quantity < 1) return;
         setLoadingItem(itemId);
@@ -117,7 +102,6 @@ const Cart = () => {
         }
     };
 
-    // Remove item
     const handleRemoveItem = async (itemId) => {
         setLoadingItem(itemId);
         try {
@@ -131,12 +115,8 @@ const Cart = () => {
         }
     };
 
-    // Clear cart
     const handleClearCart = async () => {
-        if (cart.length === 0) {
-            toast.info("Cart is already empty");
-            return;
-        }
+        if (cart.length === 0) return;
         setClearing(true);
         try {
             await api.delete("/cart");
@@ -149,44 +129,27 @@ const Cart = () => {
         }
     };
 
-    // ---- Calculations ----
     const itemTotal = cart.reduce((sum, ci) => sum + ci.quantity * ci.item.price, 0);
     const grandTotal = itemTotal + PLATFORM_FEE;
 
-    // ----------------------------------
-    // Validate custom time (HH:mm)
-    // ----------------------------------
     const validateCustomTime = () => {
         if (!customTime) return false;
-
         const [ch, cm] = customTime.split(":").map(Number);
         const customDate = new Date();
         customDate.setHours(ch, cm, 0, 0);
-
         const minAllowed = new Date();
         minAllowed.setMinutes(minAllowed.getMinutes() + 30);
-
         return customDate >= minAllowed;
     };
 
-    // ----------------------------------
-    // Checkout handler (ONLINE ONLY)
-    // ----------------------------------
     const handleCheckout = async () => {
-        if (cart.length === 0) {
-            toast.info("Your cart is empty");
+        if (cart.length === 0) return;
+        if (isCustomMode && (!customTime || !validateCustomTime())) {
+            toast.error("Custom time must be at least 30 minutes from now.");
             return;
         }
 
-        if (isCustomMode) {
-            if (!customTime || !validateCustomTime()) {
-                toast.error("Custom time must be at least 30 minutes from now.");
-                return;
-            }
-        }
-
         const finalPickupTime = isCustomMode ? customTime : pickupTime;
-
         if (!finalPickupTime) {
             toast.error("Please select a pickup time.");
             return;
@@ -195,20 +158,15 @@ const Cart = () => {
         const canteenIds = cart.map((ci) => ci.item.canteen?._id?.toString());
         const uniqueCanteens = [...new Set(canteenIds)];
         if (uniqueCanteens.length !== 1) {
-            toast.error("All items must be from the same canteen to checkout");
+            toast.error("All items must be from the same canteen");
             return;
         }
-        const canteenId = uniqueCanteens[0];
 
-        const orderItems = cart.map((ci) => ({
-            item: ci.item._id,
-            quantity: ci.quantity,
-        }));
+        const canteenId = uniqueCanteens[0];
+        const orderItems = cart.map((ci) => ({ item: ci.item._id, quantity: ci.quantity }));
 
         setProcessing(true);
-
         try {
-            // OPTION A FLOW: Create a PaymentIntent — NOT an Order
             const paymentIntent = await api.post("/payments/initiate", {
                 canteen: canteenId,
                 items: orderItems,
@@ -222,199 +180,176 @@ const Cart = () => {
                 toast.error("Failed to start payment, please try again.");
             }
         } catch (err) {
-            const msg = err.response?.data?.error || err.response?.data?.message || "Checkout failed";
-            toast.error(msg);
+            toast.error(err.response?.data?.error || err.response?.data?.message || "Checkout failed");
         } finally {
             setProcessing(false);
         }
     };
 
-    // ---------------------------------------
-    // UI — TIME PICKER (Scrollable UI)
-    // ---------------------------------------
-    const renderTimePicker = () => (
-        <div className="p-4 border rounded-2xl bg-background shadow-sm mb-6">
-            <h3 className="font-semibold text-primary mb-2">Select Pickup Time ⏱</h3>
-
-            {/* Toggle between preset slots and custom time */}
-            <div className="flex gap-4 mb-4">
-                <button
-                    className={`px-4 py-2 rounded-full text-sm font-medium ${!isCustomMode
-                        ? "bg-primary text-white"
-                        : "bg-gray-200 dark:bg-gray-800"
-                        }`}
-                    onClick={() => setIsCustomMode(false)}
-                >
-                    Choose Slot
-                </button>
-
-                <button
-                    className={`px-4 py-2 rounded-full text-sm font-medium ${isCustomMode
-                        ? "bg-primary text-white"
-                        : "bg-gray-200 dark:bg-gray-800"
-                        }`}
-                    onClick={() => setIsCustomMode(true)}
-                >
-                    Custom Time
-                </button>
-            </div>
-
-            {/* PRESET TIME SLOTS */}
-            {!isCustomMode && (
-                <div className="max-h-48 overflow-y-auto border rounded-xl p-3 space-y-2">
-                    {timeSlots.map((slot) => (
-                        <div
-                            key={slot}
-                            onClick={() => setPickupTime(slot)}
-                            className={`p-2 rounded-lg cursor-pointer text-sm ${pickupTime === slot
-                                ? "bg-primary text-white"
-                                : "bg-gray-100 dark:bg-gray-800 text-text"
-                                }`}
-                        >
-                            {slot}
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {/* CUSTOM TIME */}
-            {isCustomMode && (
-                <div className="mt-4">
-                    <input
-                        type="time"
-                        value={customTime}
-                        onChange={(e) => setCustomTime(e.target.value)}
-                        className="p-3 rounded-xl border w-full dark:bg-gray-800"
-                    />
-                    <p className="text-xs text-text/60 mt-1">
-                        Must be minimum 30 minutes from now.
-                    </p>
-                </div>
-            )}
-        </div>
-    );
-
     return (
-        <div className="max-w-5xl mx-auto p-6 space-y-8 bg-background text-text transition-colors duration-300">
-            <SEO
-                title="Your Cart"
-                description="Review your selected canteen items before checkout and payment on Kantevo."
-                canonicalPath="/student/cart"
-            />
+        <div className="space-y-6">
+            <SEO title="Your Cart" description="Review your cart before checkout on Kantevo." canonicalPath="/student/cart" />
 
-            <h1 className="text-2xl font-bold text-primary">Cart 🛒</h1>
+            <h1 className="text-2xl md:text-3xl font-bold">Your Cart</h1>
 
             {loading ? (
-                <p className="text-text/70">Loading cart...</p>
+                <div className="card p-12 text-center">
+                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                    <p className="text-text-secondary">Loading cart...</p>
+                </div>
             ) : cart.length === 0 ? (
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-center text-text/70 p-10 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm"
-                >
-                    Your cart is empty.
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card p-12 text-center">
+                    <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                        <ShoppingCartIcon className="w-8 h-8 text-primary" />
+                    </div>
+                    <h3 className="font-semibold text-lg mb-2">Your cart is empty</h3>
+                    <p className="text-text-secondary text-sm">Add items from a canteen to get started</p>
                 </motion.div>
             ) : (
-                <>
-                    {renderTimePicker()}
-
+                <div className="grid lg:grid-cols-3 gap-6">
                     {/* Cart Items */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        {cart.map((cartItem) => (
-                            <motion.div
-                                key={cartItem.item._id}
-                                layout
-                                initial={{ opacity: 0, y: 8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -8 }}
-                                className="flex flex-col border border-gray-200 dark:border-gray-700 rounded-2xl p-4 bg-background shadow-sm hover:shadow-md transition"
-                            >
-                                <div className="flex gap-4">
+                    <div className="lg:col-span-2 space-y-4">
+                        <AnimatePresence>
+                            {cart.map((cartItem) => (
+                                <motion.div
+                                    key={cartItem.item._id}
+                                    layout
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    className="card p-4 flex gap-4"
+                                >
                                     <img
                                         src={cartItem.item.image}
                                         alt={cartItem.item.name}
-                                        className="w-24 h-24 object-cover rounded-xl"
+                                        className="w-20 h-20 md:w-24 md:h-24 object-cover rounded-xl"
                                     />
-                                    <div className="flex flex-col justify-between">
-                                        <h3 className="font-semibold text-base text-primary">{cartItem.item.name}</h3>
-                                        <p className="text-sm text-text/70">
-                                            Price: ₹{cartItem.item.price.toFixed(2)}
-                                        </p>
-                                        <p className="text-sm text-text/70">
-                                            Subtotal: ₹{(cartItem.item.price * cartItem.quantity).toFixed(2)}
-                                        </p>
+                                    <div className="flex-1 flex flex-col justify-between">
+                                        <div>
+                                            <h3 className="font-semibold">{cartItem.item.name}</h3>
+                                            <p className="text-sm text-text-secondary">₹{cartItem.item.price.toFixed(2)} each</p>
+                                        </div>
+                                        <div className="flex items-center justify-between mt-2">
+                                            <div className="flex items-center gap-1 bg-background-subtle rounded-full p-1">
+                                                <button
+                                                    onClick={() => handleQuantityChange(cartItem.item._id, cartItem.quantity - 1)}
+                                                    disabled={loadingItem === cartItem.item._id || cartItem.quantity <= 1}
+                                                    className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-primary/10 disabled:opacity-40"
+                                                >
+                                                    <MinusIcon className="w-4 h-4" />
+                                                </button>
+                                                <span className="w-8 text-center font-semibold">{cartItem.quantity}</span>
+                                                <button
+                                                    onClick={() => handleQuantityChange(cartItem.item._id, cartItem.quantity + 1)}
+                                                    disabled={loadingItem === cartItem.item._id}
+                                                    className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-primary/10 disabled:opacity-40"
+                                                >
+                                                    <PlusIcon className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <p className="font-semibold text-primary">₹{(cartItem.item.price * cartItem.quantity).toFixed(2)}</p>
+                                                <button
+                                                    onClick={() => handleRemoveItem(cartItem.item._id)}
+                                                    disabled={loadingItem === cartItem.item._id}
+                                                    className="p-2 text-error hover:bg-error/10 rounded-lg transition-colors"
+                                                >
+                                                    <TrashIcon className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
 
-                                {/* Quantity controls */}
-                                <div className="flex items-center gap-2 mt-3 self-center">
-                                    <button
-                                        onClick={() => handleQuantityChange(cartItem.item._id, cartItem.quantity - 1)}
-                                        className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 font-bold text-primary hover:bg-primary/10 disabled:opacity-40"
-                                        disabled={loadingItem === cartItem.item._id}
-                                    >
-                                        −
-                                    </button>
-                                    <span className="font-semibold">{cartItem.quantity}</span>
-                                    <button
-                                        onClick={() => handleQuantityChange(cartItem.item._id, cartItem.quantity + 1)}
-                                        className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 font-bold text-primary hover:bg-primary/10 disabled:opacity-40"
-                                        disabled={loadingItem === cartItem.item._id}
-                                    >
-                                        +
-                                    </button>
-                                </div>
-
-                                {/* Remove button */}
-                                <button
-                                    onClick={() => handleRemoveItem(cartItem.item._id)}
-                                    className="mt-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-full text-sm disabled:opacity-50 transition"
-                                    disabled={loadingItem === cartItem.item._id}
-                                >
-                                    Remove
-                                </button>
-                            </motion.div>
-                        ))}
-                    </div>
-
-                    {/* Bill Summary */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="p-6 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm bg-background"
-                    >
-                        <h2 className="text-xl font-bold text-primary mb-2">Bill Summary</h2>
-                        <div className="space-y-1 text-sm text-text/80">
-                            <p>Item Total: ₹{itemTotal.toFixed(2)}</p>
-
-                            {/* UPDATED: showing only platform fee */}
-                            <p>Platform Fee: ₹{PLATFORM_FEE.toFixed(2)}</p>
-                        </div>
-
-                        <h3 className="text-lg font-bold mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 text-primary">
-                            To Pay: ₹{grandTotal.toFixed(2)}
-                        </h3>
-                    </motion.div>
-
-                    {/* Actions */}
-                    <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
                         <button
                             onClick={handleClearCart}
-                            className="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-full font-semibold transition"
-                            disabled={clearing || processing}
+                            disabled={clearing}
+                            className="text-error text-sm hover:underline disabled:opacity-50"
                         >
-                            {clearing ? "Clearing..." : "Clear Cart"}
-                        </button>
-
-                        <button
-                            onClick={handleCheckout}
-                            className="bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-full font-semibold transition"
-                            disabled={processing || clearing}
-                        >
-                            {processing ? "Processing..." : "Pay & Order"}
+                            {clearing ? "Clearing..." : "Clear entire cart"}
                         </button>
                     </div>
-                </>
+
+                    {/* Sidebar */}
+                    <div className="space-y-4">
+                        {/* Pickup Time */}
+                        <div className="card p-5">
+                            <h3 className="font-semibold flex items-center gap-2 mb-4">
+                                <ClockIcon className="w-5 h-5 text-primary" />
+                                Pickup Time
+                            </h3>
+
+                            <div className="flex gap-2 mb-4">
+                                <button
+                                    onClick={() => setIsCustomMode(false)}
+                                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${!isCustomMode ? "bg-primary text-white" : "bg-background-subtle hover:bg-background-subtle/80"}`}
+                                >
+                                    Choose Slot
+                                </button>
+                                <button
+                                    onClick={() => setIsCustomMode(true)}
+                                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${isCustomMode ? "bg-primary text-white" : "bg-background-subtle hover:bg-background-subtle/80"}`}
+                                >
+                                    Custom
+                                </button>
+                            </div>
+
+                            {!isCustomMode ? (
+                                <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+                                    {timeSlots.map((slot) => (
+                                        <button
+                                            key={slot}
+                                            onClick={() => setPickupTime(slot)}
+                                            className={`w-full p-2.5 rounded-lg text-sm text-left transition-colors ${pickupTime === slot ? "bg-primary text-white" : "bg-background-subtle hover:bg-primary/10"}`}
+                                        >
+                                            {slot}
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div>
+                                    <input
+                                        type="time"
+                                        value={customTime}
+                                        onChange={(e) => setCustomTime(e.target.value)}
+                                        className="input"
+                                    />
+                                    <p className="text-xs text-text-muted mt-2">Min 30 minutes from now</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Bill Summary */}
+                        <div className="card p-5">
+                            <h3 className="font-semibold mb-4">Bill Summary</h3>
+                            <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                    <span className="text-text-secondary">Item Total</span>
+                                    <span>₹{itemTotal.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-text-secondary">Platform Fee</span>
+                                    <span>₹{PLATFORM_FEE.toFixed(2)}</span>
+                                </div>
+                                <div className="border-t border-border pt-3 mt-3 flex justify-between font-semibold text-base">
+                                    <span>To Pay</span>
+                                    <span className="text-primary">₹{grandTotal.toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Checkout Button */}
+                        <button
+                            onClick={handleCheckout}
+                            disabled={processing || clearing}
+                            className="btn-primary w-full py-3.5 text-base font-semibold disabled:opacity-50"
+                        >
+                            {processing ? "Processing..." : `Pay ₹${grandTotal.toFixed(2)}`}
+                        </button>
+                    </div>
+                </div>
             )}
         </div>
     );

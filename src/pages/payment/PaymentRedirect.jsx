@@ -1,10 +1,18 @@
-// pages/payment/PaymentRedirect.jsx
+// src/pages/payment/PaymentRedirect.jsx
+// Premium payment redirect page
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
+import { motion } from "framer-motion";
+import {
+    CheckCircleIcon,
+    XCircleIcon,
+    ShoppingCartIcon
+} from "@heroicons/react/24/outline";
 import SEO from "../../components/SEO";
-import SuccessAnimation from "../../components/SuccessAnimation"; // NEW
+import SuccessAnimation from "../../components/SuccessAnimation";
 
 const PaymentRedirect = () => {
     const { merchantOrderId } = useParams();
@@ -20,7 +28,6 @@ const PaymentRedirect = () => {
             return navigate("/student/cart");
         }
 
-        // fetch once
         const fetchStatus = async () => {
             setLoading(true);
             try {
@@ -30,7 +37,6 @@ const PaymentRedirect = () => {
 
                 if (state === "paid" || state === "success") {
                     toast.success("Payment successful!");
-                    // Delay redirect to show success animation
                     setTimeout(() => navigate("/student/orders"), 1500);
                     return;
                 }
@@ -54,50 +60,113 @@ const PaymentRedirect = () => {
         if (!authLoading) fetchStatus();
     }, [merchantOrderId, authLoading]);
 
+    const isSuccess = status === "paid" || status === "success";
+    const isFailed = status === "failed";
+
     return (
-        <div className="max-w-3xl mx-auto p-6 space-y-6">
-            <SEO title="Processing Payment..." />
-            <div className="p-6 rounded-2xl border bg-background">
-                <h2 className="text-xl font-semibold text-primary mb-2">
-                    Processing your payment…
-                </h2>
+        <div className="min-h-screen bg-background text-text">
+            <SEO title="Processing Payment" canonicalPath="/payment/redirect" />
 
-                <p className="text-sm text-text/70">
-                    Checking payment status for <strong>{merchantOrderId}</strong>.
-                </p>
+            <div className="container-app py-12 md:py-20">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="max-w-lg mx-auto"
+                >
+                    <div className="card p-8 text-center">
+                        {/* Loading State */}
+                        {loading && !status && (
+                            <motion.div
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                className="space-y-6"
+                            >
+                                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                                    <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+                                </div>
+                                <div>
+                                    <h1 className="text-2xl font-bold mb-2">
+                                        Processing Payment
+                                    </h1>
+                                    <p className="text-text-secondary">
+                                        Please wait while we verify your payment...
+                                    </p>
+                                </div>
 
-                {loading ? (
-                    <div className="mt-4 text-sm text-text/60">Checking status…</div>
-                ) : (
-                    <>
-                        {status === "paid" || status === "success" ? (
-                            <div className="mt-6">
-                                <SuccessAnimation size={180} />
-                                <p className="mt-4 text-green-600 font-semibold text-center">
-                                    Payment Successful!
+                                {/* Order ID */}
+                                <div className="p-4 rounded-xl bg-background-subtle">
+                                    <p className="text-sm text-text-muted mb-1">Order Reference</p>
+                                    <p className="font-mono font-semibold text-sm break-all">
+                                        {merchantOrderId}
+                                    </p>
+                                </div>
+
+                                <p className="text-xs text-text-muted">
+                                    Do not close this page
                                 </p>
-                            </div>
-                        ) : (
-                            <>
-                                <p className="mt-4 text-sm">
-                                    Current state:{" "}
-                                    <strong className="capitalize">{status}</strong>
-                                </p>
-
-                                {status === "failed" && (
-                                    <div className="mt-3">
-                                        <button
-                                            onClick={() => navigate("/student/cart")}
-                                            className="px-4 py-2 rounded-full bg-primary text-white"
-                                        >
-                                            Back to Cart
-                                        </button>
-                                    </div>
-                                )}
-                            </>
+                            </motion.div>
                         )}
-                    </>
-                )}
+
+                        {/* Success State */}
+                        {isSuccess && (
+                            <motion.div
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                className="space-y-6"
+                            >
+                                <SuccessAnimation size={150} />
+                                <div>
+                                    <h1 className="text-2xl font-bold text-success mb-2">
+                                        Payment Successful!
+                                    </h1>
+                                    <p className="text-text-secondary">
+                                        Your order has been placed successfully.
+                                    </p>
+                                </div>
+                                <p className="text-sm text-text-muted">
+                                    Redirecting to your orders...
+                                </p>
+                            </motion.div>
+                        )}
+
+                        {/* Failed State */}
+                        {isFailed && (
+                            <motion.div
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                className="space-y-6"
+                            >
+                                <div className="w-20 h-20 rounded-full bg-error/10 flex items-center justify-center mx-auto">
+                                    <XCircleIcon className="w-10 h-10 text-error" />
+                                </div>
+                                <div>
+                                    <h1 className="text-2xl font-bold text-error mb-2">
+                                        Payment Failed
+                                    </h1>
+                                    <p className="text-text-secondary">
+                                        Something went wrong with your payment. Please try again.
+                                    </p>
+                                </div>
+
+                                {/* Order ID */}
+                                <div className="p-4 rounded-xl bg-background-subtle">
+                                    <p className="text-sm text-text-muted mb-1">Order Reference</p>
+                                    <p className="font-mono font-semibold text-sm break-all">
+                                        {merchantOrderId}
+                                    </p>
+                                </div>
+
+                                <button
+                                    onClick={() => navigate("/student/cart")}
+                                    className="btn-primary px-6 py-3 flex items-center gap-2 mx-auto"
+                                >
+                                    <ShoppingCartIcon className="w-5 h-5" />
+                                    Back to Cart
+                                </button>
+                            </motion.div>
+                        )}
+                    </div>
+                </motion.div>
             </div>
         </div>
     );

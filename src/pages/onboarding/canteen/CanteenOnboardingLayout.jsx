@@ -1,17 +1,18 @@
 // pages/onboarding/canteen/CanteenOnboardingLayout.jsx
-// ✅ Added validation handling + disable next until valid
-// ✅ Consistent with StudentOnboardingLayout design
+// Premium canteen onboarding layout with modern design
 
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { useAuth } from "../../../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { CheckIcon } from "@heroicons/react/24/solid";
+import { toast } from "react-toastify";
+import { useAuth } from "../../../context/AuthContext";
 import ScreenTransition from "../../../components/ScreenTransition";
 
 const steps = [
-    { key: "step1", title: "Restaurant information" },
-    { key: "step2", title: "Menu & timings" },
-    { key: "step3", title: "Documents & banking" },
+    { key: "step1", title: "Owner Information", description: "Your contact details" },
+    { key: "step2", title: "Canteen Setup", description: "Menu & timings" },
+    { key: "step3", title: "Documents", description: "Legal & banking" },
 ];
 
 const CanteenOnboardingLayout = () => {
@@ -19,8 +20,6 @@ const CanteenOnboardingLayout = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [busy, setBusy] = useState(false);
-
-    // ✅ NEW: same pattern as student
     const [formValidity, setFormValidity] = useState({ step1: false, step2: false, step3: false });
     const [handleStepNext, setHandleStepNext] = useState(null);
 
@@ -47,11 +46,10 @@ const CanteenOnboardingLayout = () => {
             if (!ok) return;
         }
 
-        // NEW: If this was the last step, complete onboarding
         if (activeIndex === steps.length - 1) {
             try {
-                await completeOnboarding();       // call AuthContext method
-                navigate("/canteen/home", { replace: true }); // go to dashboard
+                await completeOnboarding();
+                navigate("/pending-approval", { replace: true });
             } catch {
                 toast.error("Failed to complete onboarding");
             }
@@ -62,68 +60,131 @@ const CanteenOnboardingLayout = () => {
     };
 
     return (
-        <div className="min-h-[calc(100vh-56px)] bg-background text-text">
-            <div className="max-w-7xl mx-auto px-4 py-8 grid lg:grid-cols-[320px,1fr] gap-8">
-                <aside className="bg-background-card border border-gray-200 dark:border-gray-700 rounded-2xl p-4">
-                    <h3 className="text-lg font-semibold mb-4">Complete your registration</h3>
-                    <ol className="space-y-4">
-                        {steps.map((s, i) => {
-                            const done = i < activeIndex;
-                            const active = i === activeIndex;
-                            return (
-                                <li key={s.key} className="flex items-start gap-3">
-                                    <span
-                                        className={`mt-1 inline-flex h-6 w-6 rounded-full items-center justify-center text-xs font-bold ${done ? "bg-primary text-white" : active ? "border-2 border-primary text-primary" : "border border-gray-300 dark:border-gray-600 text-text/70"
-                                            }`}
-                                    >
-                                        {done ? "✓" : i + 1}
-                                    </span>
-                                    <div className="flex-1">
-                                        <div className="font-medium">{s.title}</div>
-                                        {active && <div className="text-xs text-text/60">Continue ▸</div>}
-                                    </div>
-                                </li>
-                            );
-                        })}
-                    </ol>
-                </aside>
+        <div className="min-h-screen bg-background text-text">
+            <div className="container-app pt-6 pb-8">
+                <h1 className="text-xl md:text-2xl font-semibold text-text mb-8">
+                    Complete your registration to start receiving orders
+                </h1>
+                <div className="grid lg:grid-cols-[300px,1fr] gap-8">
+                    {/* Left Sidebar - Steps */}
+                    <aside className="hidden lg:block">
+                        <div className="card p-6 sticky top-24">
+                            <h3 className="font-semibold text-sm uppercase tracking-wider text-text-muted mb-6">
+                                Registration Steps
+                            </h3>
+                            <ol className="space-y-4">
+                                {steps.map((s, i) => {
+                                    const done = i < activeIndex;
+                                    const active = i === activeIndex;
+                                    return (
+                                        <li key={s.key} className="flex items-start gap-4">
+                                            <div
+                                                className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-all ${done
+                                                    ? "bg-success text-white"
+                                                    : active
+                                                        ? "bg-primary text-white shadow-md"
+                                                        : "bg-background-subtle text-text-muted border border-border"
+                                                    }`}
+                                            >
+                                                {done ? <CheckIcon className="w-4 h-4" /> : i + 1}
+                                            </div>
+                                            <div className="flex-1 pt-1">
+                                                <div className={`font-medium ${active ? "text-text" : "text-text-secondary"}`}>
+                                                    {s.title}
+                                                </div>
+                                                <div className="text-xs text-text-muted mt-0.5">
+                                                    {s.description}
+                                                </div>
+                                            </div>
+                                        </li>
+                                    );
+                                })}
+                            </ol>
 
-                <section className="bg-background-card border border-gray-200 dark:border-gray-700 rounded-2xl p-6 relative overflow-hidden">
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={currentKey}
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -8 }}
-                            transition={{ duration: 0.25 }}
-                        >
-                            <Outlet context={{ goToStep, activeIndex, steps, setFormValidity, setHandleStepNext }} />
-                        </motion.div>
-                    </AnimatePresence>
-                </section>
+                            {/* Help Section */}
+                            <div className="mt-8 pt-6 border-t border-border">
+                                <p className="text-sm text-text-muted">
+                                    Need help? Contact us at{" "}
+                                    <a href="mailto:partner@kantevo.com" className="text-primary hover:underline">
+                                        partner@kantevo.com
+                                    </a>
+                                </p>
+                            </div>
+                        </div>
+                    </aside>
+
+                    {/* Mobile Steps Indicator */}
+                    <div className="lg:hidden mb-6">
+                        <div className="flex items-center justify-between mb-4">
+                            {steps.map((s, i) => {
+                                const done = i < activeIndex;
+                                const active = i === activeIndex;
+                                return (
+                                    <div key={s.key} className="flex items-center">
+                                        <div
+                                            className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${done
+                                                ? "bg-success text-white"
+                                                : active
+                                                    ? "bg-primary text-white"
+                                                    : "bg-background-subtle text-text-muted border border-border"
+                                                }`}
+                                        >
+                                            {done ? <CheckIcon className="w-4 h-4" /> : i + 1}
+                                        </div>
+                                        {i < steps.length - 1 && (
+                                            <div className={`w-12 sm:w-16 h-1 mx-2 rounded ${i < activeIndex ? "bg-success" : "bg-border"}`} />
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <p className="text-sm font-medium">{steps[activeIndex].title}</p>
+                    </div>
+
+                    {/* Main Content */}
+                    <section className="card p-6 md:p-8">
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={currentKey}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <Outlet context={{ goToStep, activeIndex, steps, setFormValidity, setHandleStepNext }} />
+                            </motion.div>
+                        </AnimatePresence>
+                    </section>
+                </div>
             </div>
 
-            <div className="sticky bottom-0 z-10 bg-background/90 backdrop-blur border-t border-gray-200 dark:border-gray-700">
-                <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-                    <div className="text-sm text-text/70">Step {activeIndex + 1} of {steps.length}</div>
-                    <div className="space-x-2">
+            {/* Fixed Bottom Bar */}
+            <div className="fixed bottom-0 left-0 right-0 z-20 bg-background-elevated/95 backdrop-blur-lg border-t border-border">
+                <div className="container-app py-3 flex items-center justify-between">
+                    <div className="text-sm text-text-muted">
+                        Step <span className="font-semibold text-text">{activeIndex + 1}</span> of {steps.length}
+                    </div>
+                    <div className="flex gap-3">
                         <button
                             onClick={() => goToStep(activeIndex - 1)}
                             disabled={activeIndex === 0}
-                            className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50"
+                            className="btn-secondary px-4 py-2 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             Back
                         </button>
                         <button
                             onClick={handleNextClick}
                             disabled={!canProceed}
-                            className="px-5 py-2 rounded-lg bg-primary text-white disabled:opacity-50"
+                            className="btn-primary px-5 py-2 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                            {activeIndex === steps.length - 1 ? "Finish" : "Next"}
+                            {activeIndex === steps.length - 1 ? "Submit for Review" : "Continue"}
                         </button>
                     </div>
                 </div>
             </div>
+
+            {/* Spacer for fixed bottom bar */}
+            <div className="h-20" />
 
             <ScreenTransition show={busy} />
         </div>

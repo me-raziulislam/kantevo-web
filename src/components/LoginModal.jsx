@@ -1,10 +1,9 @@
 // components/LoginModal.jsx
-// Updated to passwordless login flow (email + OTP).
-// Keeps same UI but removes password field and adds 60s resend cooldown.
+// Premium passwordless login with OTP
 
 import { useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { FaEnvelope } from "react-icons/fa";
+import { EnvelopeIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Modal from "./Modal";
@@ -20,7 +19,6 @@ const LoginModal = ({ isOpen, onClose, onOpenSignup, initialFocusRef }) => {
     const { sendLoginOTP, hasCompletedOnboarding, user } = useAuth();
     const navigate = useNavigate();
 
-    // ---------- Handle login OTP request ----------
     const handleSendOTP = async (e) => {
         e.preventDefault();
         if (!email) return toast.error("Please enter your email.");
@@ -30,7 +28,7 @@ const LoginModal = ({ isOpen, onClose, onOpenSignup, initialFocusRef }) => {
             const res = await sendLoginOTP(email);
             if (res.success) {
                 setShowOTPModal(true);
-                setCooldown(60); // 60s cooldown before re-sending OTP
+                setCooldown(60);
                 const timer = setInterval(() => {
                     setCooldown((c) => {
                         if (c <= 1) clearInterval(timer);
@@ -45,71 +43,91 @@ const LoginModal = ({ isOpen, onClose, onOpenSignup, initialFocusRef }) => {
         }
     };
 
-    // ---------- After OTP verified ----------
     const handleVerified = () => {
         setShowOTPModal(false);
         onClose();
 
-        // Redirect based on user type and onboarding completion
         if (hasCompletedOnboarding(user)) {
             if (user.role === "canteenOwner") navigate("/canteen/home");
             else navigate("/student/home");
         } else {
-            // redirect to onboarding flow
             navigate(`/onboarding/${user?.role}`);
         }
     };
 
     return (
         <>
-            <Modal isOpen={isOpen} onClose={onClose} title="Login" initialFocusRef={emailRef}>
-                <form onSubmit={handleSendOTP} className="space-y-4">
+            <Modal
+                isOpen={isOpen}
+                onClose={onClose}
+                title="Welcome back"
+                subtitle="Enter your email to receive a login code"
+                initialFocusRef={emailRef}
+            >
+                <form onSubmit={handleSendOTP} className="space-y-5">
                     {/* Email Field */}
-                    <div className="relative">
-                        <FaEnvelope className="absolute top-3 left-3 text-text/50" />
-                        <input
-                            ref={emailRef}
-                            type="email"
-                            placeholder="Email"
-                            className="w-full pl-10 p-3 rounded-lg bg-background text-text border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            autoComplete="email"
-                        />
+                    <div>
+                        <label className="block text-sm font-medium text-text-secondary mb-2">
+                            Email address
+                        </label>
+                        <div className="relative">
+                            <EnvelopeIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted pointer-events-none" />
+                            <input
+                                ref={emailRef}
+                                type="email"
+                                placeholder="you@example.com"
+                                className="input input-with-icon"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                                autoComplete="email"
+                            />
+                        </div>
                     </div>
 
                     {/* Submit */}
                     <button
                         type="submit"
                         disabled={busy || cooldown > 0}
-                        className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 rounded-lg transition disabled:opacity-70"
+                        className="w-full btn-primary py-3.5 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                        {busy ? "Sending OTP..." : cooldown > 0 ? `Resend in ${cooldown}s` : "Send OTP"}
+                        {busy ? (
+                            <>
+                                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                Sending...
+                            </>
+                        ) : cooldown > 0 ? (
+                            `Resend in ${cooldown}s`
+                        ) : (
+                            <>
+                                Continue
+                                <ArrowRightIcon className="w-4 h-4" />
+                            </>
+                        )}
                     </button>
 
                     {/* Divider */}
-                    <div className="flex items-center gap-3 my-2">
-                        <span className="h-px flex-1 bg-text/10" />
-                        <span className="text-xs text-text/60">or</span>
-                        <span className="h-px flex-1 bg-text/10" />
+                    <div className="flex items-center gap-4">
+                        <span className="h-px flex-1 bg-border" />
+                        <span className="text-xs text-text-muted uppercase tracking-wide">or</span>
+                        <span className="h-px flex-1 bg-border" />
                     </div>
 
                     {/* Signup prompt */}
-                    <p className="text-sm text-center">
+                    <p className="text-sm text-center text-text-secondary">
                         New to Kantevo?{" "}
                         <button
                             type="button"
-                            className="text-primary hover:underline"
+                            className="text-primary font-medium hover:underline"
                             onClick={onOpenSignup}
                         >
-                            Create account
+                            Create an account
                         </button>
                     </p>
                 </form>
             </Modal>
 
-            {/* OTP Modal for login verification */}
+            {/* OTP Modal */}
             {showOTPModal && (
                 <OTPModal
                     isOpen={showOTPModal}

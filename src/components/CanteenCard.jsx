@@ -1,99 +1,96 @@
 // src/components/CanteenCard.jsx
+// Premium canteen card component
+
 import { motion } from "framer-motion";
+import { ClockIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
 
 const CanteenCard = ({ canteen, active, onSelect, detailed = false }) => {
     if (detailed) {
-        // --- Detailed layout (like CanteenPage header) ---
         return (
             <motion.button
                 whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.985 }}
+                whileTap={{ scale: 0.99 }}
                 onClick={() => onSelect(canteen._id)}
-                className={`text-left cursor-pointer rounded-2xl p-5 border shadow-sm transition ${
-                    active
-                        ? "border-primary shadow-md"
-                        : "border-gray-200 dark:border-gray-700"
-                } bg-background w-full hover:shadow-md`}
+                className={`text-left cursor-pointer card p-5 transition-all w-full ${
+                    active ? "ring-2 ring-primary shadow-md" : "hover:shadow-md"
+                }`}
             >
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                    <div>
-                        <h3 className="text-xl font-bold">{canteen.name}</h3>
-                        <p className="text-sm text-text/70">
-                            {canteen.cuisines?.join(", ") || "Canteen"} ·{" "}
-                            {canteen.isOpen ? (
-                                <span className="text-green-600 font-medium">
-                                    Open Now
-                                </span>
-                            ) : (
-                                <span className="text-red-600 font-medium">
-                                    Closed
-                                </span>
-                            )}
-                        </p>
-                        <p className="text-xs text-text/60 mt-1">
-                            {canteen.openingTime} - {canteen.closingTime}{" "}
-                            {!canteen.isOpenOnSunday && "(Closed on Sundays)"}
-                        </p>
-                        {canteen.nextOpeningText && !canteen.isOpen && (
-                            <p className="text-xs text-text/60 mt-1 italic">
-                                {canteen.nextOpeningText}
+                <div className="flex flex-col gap-3">
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                            <h3 className="text-lg font-bold mb-1">{canteen.name}</h3>
+                            <p className="text-sm text-text-secondary">
+                                {canteen.cuisines?.join(" • ") || "Campus Canteen"}
                             </p>
+                        </div>
+                        <span
+                            className={`px-3 py-1 rounded-full text-xs font-semibold shrink-0 ${
+                                canteen.isOpen
+                                    ? "bg-success/10 text-success"
+                                    : "bg-error/10 text-error"
+                            }`}
+                        >
+                            {canteen.isOpen ? "Open" : "Closed"}
+                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm text-text-muted">
+                        <ClockIcon className="w-4 h-4" />
+                        <span>{canteen.openingTime} - {canteen.closingTime}</span>
+                        {!canteen.isOpenOnSunday && (
+                            <span className="text-warning text-xs">• Closed Sundays</span>
                         )}
                     </div>
-                </div>
 
-                {canteen.about && (
-                    <p className="text-text/80 text-sm mt-3 leading-relaxed line-clamp-3">
-                        {canteen.about}
-                    </p>
-                )}
+                    {canteen.nextOpeningText && !canteen.isOpen && (
+                        <p className="text-xs text-text-muted italic">{canteen.nextOpeningText}</p>
+                    )}
 
-                <div className="mt-4 flex justify-end">
-                    <span className="text-primary text-sm font-medium hover:underline">
-                        View Menu →
-                    </span>
+                    {canteen.about && (
+                        <p className="text-sm text-text-secondary line-clamp-2">{canteen.about}</p>
+                    )}
+
+                    <div className="flex justify-end pt-2">
+                        <span className="text-primary text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
+                            View Menu
+                            <ArrowRightIcon className="w-4 h-4" />
+                        </span>
+                    </div>
                 </div>
             </motion.button>
         );
     }
 
-    // --- Compact layout (default) ---
+    // Compact layout
     return (
         <motion.button
-            whileHover={{ scale: 1.015 }}
-            whileTap={{ scale: 0.985 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => onSelect(canteen._id)}
-            className={`text-left cursor-pointer rounded-2xl p-3 border shadow-sm transition ${
-                active
-                    ? "border-primary shadow-md"
-                    : "border-gray-200 dark:border-gray-700"
-            } bg-background w-full`}
+            className={`text-left cursor-pointer card p-4 transition-all w-full ${
+                active ? "ring-2 ring-primary shadow-md" : "hover:shadow-md"
+            }`}
         >
-            <div className="flex gap-3 items-center">
+            <div className="flex gap-4 items-center">
                 <img
-                    src={
-                        canteen.coverImage ||
-                        "https://via.placeholder.com/160x90?text=Canteen"
-                    }
+                    src={canteen.coverImage || "https://via.placeholder.com/160x90?text=Canteen"}
                     alt={canteen.name}
                     className="h-16 w-24 object-cover rounded-xl"
                 />
-                <div className="flex-1">
-                    <div className="font-semibold truncate">{canteen.name}</div>
-                    <div className="text-xs text-text/70 truncate">
-                        {canteen.tags?.slice(0, 2).join(" · ") || "Canteen"}
-                    </div>
-                </div>
-            </div>
-            <div className="mt-3">
-                <div
-                    className={`inline-flex text-xs px-2 py-0.5 rounded-full ${
-                        canteen.isOpen
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                    }`}
-                >
-                    {canteen.isOpen ? "Open" : "Closed"}
+                <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold truncate">{canteen.name}</h3>
+                    <p className="text-xs text-text-muted truncate">
+                        {canteen.cuisines?.slice(0, 2).join(" • ") || "Canteen"}
+                    </p>
+                    <span
+                        className={`inline-block mt-2 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            canteen.isOpen
+                                ? "bg-success/10 text-success"
+                                : "bg-error/10 text-error"
+                        }`}
+                    >
+                        {canteen.isOpen ? "Open" : "Closed"}
+                    </span>
                 </div>
             </div>
         </motion.button>

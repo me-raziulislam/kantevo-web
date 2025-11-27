@@ -1,4 +1,6 @@
 // src/pages/student/StudentLayout.jsx
+// Premium student layout wrapper
+
 import { Outlet, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
@@ -10,26 +12,32 @@ const StudentLayout = () => {
 
     if (loading) {
         return (
-            <div className="min-h-[calc(100vh-56px)] bg-background text-text">
-                <div className="max-w-7xl mx-auto px-4 py-10">Loading…</div>
+            <div className="min-h-screen bg-background text-text">
+                <div className="container-app py-12">
+                    <div className="flex items-center justify-center gap-3">
+                        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                        <span className="text-text-secondary">Loading...</span>
+                    </div>
+                </div>
             </div>
         );
     }
+
     return (
-        <div className="min-h-[calc(100vh-56px)] bg-background text-text">
+        <div className="min-h-screen bg-background text-text">
             <SEO
-                title="Student"
+                title="Student Dashboard"
                 description="Browse your college canteens, order food, and track orders on Kantevo."
                 canonicalPath="/student"
             />
-            <div className="max-w-7xl mx-auto px-4 py-6">
+            <div className="container-app py-6 md:py-8">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={location.pathname}
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -8 }}
-                        transition={{ duration: 0.25 }}
+                        transition={{ duration: 0.2 }}
                     >
                         <Outlet />
                     </motion.div>

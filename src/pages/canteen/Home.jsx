@@ -1,15 +1,51 @@
+// src/pages/canteen/Home.jsx
+// Premium canteen dashboard home
+
 import { useEffect, useState, useRef } from "react";
 import { toast } from "react-toastify";
+import { motion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
-import { FaBox, FaClipboardList, FaCheckCircle, FaQrcode, FaChartLine } from "react-icons/fa";
-import { BrowserMultiFormatReader } from "@zxing/browser"; // replaced Html5Qrcode with modern library
+import {
+    QrCodeIcon,
+    CurrencyRupeeIcon,
+    ShoppingBagIcon,
+    CheckCircleIcon,
+    ClockIcon,
+    ChartBarIcon,
+    XMarkIcon,
+    FireIcon
+} from "@heroicons/react/24/outline";
+import { BrowserMultiFormatReader } from "@zxing/browser";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
 import SEO from "../../components/SEO";
+import dayjs from "dayjs";
 
-// Simple skeleton component
-const SkeletonBox = ({ className }) => (
-    <div className={`bg-gray-300 dark:bg-gray-700 animate-pulse rounded ${className}`} />
+const StatCard = ({ icon: Icon, label, value, subtext, color = "primary", loading }) => (
+    <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="card p-5"
+    >
+        {loading ? (
+            <div className="animate-pulse space-y-3">
+                <div className="h-4 w-20 bg-background-subtle rounded" />
+                <div className="h-8 w-28 bg-background-subtle rounded" />
+                <div className="h-3 w-16 bg-background-subtle rounded" />
+            </div>
+        ) : (
+            <>
+                <div className="flex items-center gap-3 mb-2">
+                    <div className={`w-10 h-10 rounded-xl bg-${color}/10 flex items-center justify-center`}>
+                        <Icon className={`w-5 h-5 text-${color}`} />
+                    </div>
+                    <span className="text-sm text-text-muted">{label}</span>
+                </div>
+                <p className="text-2xl font-bold">{value}</p>
+                {subtext && <p className="text-sm text-text-muted mt-1">{subtext}</p>}
+            </>
+        )}
+    </motion.div>
 );
 
 const Home = () => {
@@ -20,18 +56,12 @@ const Home = () => {
     const [ordersCount, setOrdersCount] = useState(0);
     const [completedCount, setCompletedCount] = useState(0);
     const [recentOrders, setRecentOrders] = useState([]);
-    const [stats, setStats] = useState({ today: 0, total: 0 });
-
-    // New stats states
-    const [moneyStats, setMoneyStats] = useState(null); // revenue + orders for day/week/month
+    const [moneyStats, setMoneyStats] = useState(null);
     const [mostSoldItemToday, setMostSoldItemToday] = useState(null);
     const [last7DaysRevenue, setLast7DaysRevenue] = useState([]);
-
-    // Loading states for skeletons
     const [loadingStats, setLoadingStats] = useState(true);
     const [loadingChart, setLoadingChart] = useState(true);
 
-    // QR scanner + modal states
     const [scanning, setScanning] = useState(false);
     const [scanResult, setScanResult] = useState(null);
     const [scanError, setScanError] = useState(null);
@@ -41,9 +71,8 @@ const Home = () => {
     const videoRef = useRef(null);
     const readerRef = useRef(null);
     const streamRef = useRef(null);
-    const dailyRefreshIntervalRef = useRef(null);
+    const scanningLockedRef = useRef(false);
 
-    // Fetch normal stats + new backend stats
     useEffect(() => {
         if (!canteenId) return;
 
@@ -52,66 +81,35 @@ const Home = () => {
                 setLoadingStats(true);
                 setLoadingChart(true);
 
-                // Fetch items
                 const itemsRes = await api.get(`/items/${canteenId}`);
                 setItemsCount(Array.isArray(itemsRes?.data) ? itemsRes.data.length : 0);
 
-                // Fetch orders
                 const ordersRes = await api.get(`/orders/canteen/${canteenId}`);
                 const allOrders = Array.isArray(ordersRes?.data) ? ordersRes.data : [];
                 setOrdersCount(allOrders.length);
 
-                const completed = allOrders.filter(
-                    (order) => order.status === "completed"
-                );
+                const completed = allOrders.filter((order) => order.status === "completed");
                 setCompletedCount(completed.length);
 
-                const sorted = allOrders.sort(
-                    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-                );
+                const sorted = allOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                 setRecentOrders(sorted.slice(0, 5));
 
-                // ✅ Fetch new money + orders stats from backend
                 const statsRes = await api.get(`/canteens/${canteenId}/stats`);
-
-                // match backend response to state
-                // Backend returns:
-                // {
-                //   revenueAndOrders: { day: { totalRevenue, orderCount }, week: {...}, month: {...} },
-                //   mostSoldToday: { name, qty } | null,
-                //   revenueLast7Days: [{ _id:{year,month,day}, totalRevenue }]
-                // }
                 const ro = statsRes?.data?.revenueAndOrders || {};
 
-                // Normalize to the shape the UI expects (today/week/month)
-                const normalized = {
-                    revenue: {
-                        today: ro?.day?.totalRevenue || 0,
-                        week: ro?.week?.totalRevenue || 0,
-                        month: ro?.month?.totalRevenue || 0,
-                    },
-                    orders: {
-                        today: ro?.day?.orderCount || 0,
-                        week: ro?.week?.orderCount || 0,
-                        month: ro?.month?.orderCount || 0,
-                    },
-                };
-                setMoneyStats(normalized);
+                setMoneyStats({
+                    revenue: { today: ro?.day?.totalRevenue || 0, week: ro?.week?.totalRevenue || 0, month: ro?.month?.totalRevenue || 0 },
+                    orders: { today: ro?.day?.orderCount || 0, week: ro?.week?.orderCount || 0, month: ro?.month?.orderCount || 0 },
+                });
 
-                // Normalize most sold (backend uses `qty`; UI shows `count`)
                 const top = statsRes?.data?.mostSoldToday || null;
                 setMostSoldItemToday(top ? { name: top.name, count: top.qty } : null);
 
-                // Transform last 7 days into { date: "DD Mon", revenue } and fill missing days with 0
                 const raw7 = Array.isArray(statsRes?.data?.revenueLast7Days) ? statsRes.data.revenueLast7Days : [];
                 const map = new Map();
                 raw7.forEach((r) => {
                     if (!r?._id) return;
-                    const y = r._id.year;
-                    const m = r._id.month; // 1-12
-                    const d = r._id.day;
-                    const key = `${y}-${m}-${d}`;
-                    map.set(key, r.totalRevenue || 0);
+                    map.set(`${r._id.year}-${r._id.month}-${r._id.day}`, r.totalRevenue || 0);
                 });
 
                 const today = new Date();
@@ -119,29 +117,13 @@ const Home = () => {
                 for (let i = 6; i >= 0; i--) {
                     const dt = new Date(today);
                     dt.setDate(today.getDate() - i);
-                    const y = dt.getFullYear();
-                    const m = dt.getMonth() + 1; // 1-12
-                    const d = dt.getDate();
-                    const key = `${y}-${m}-${d}`;
-                    const label = dt.toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                    });
-                    series.push({
-                        date: label,
-                        revenue: map.get(key) || 0,
-                    });
+                    const key = `${dt.getFullYear()}-${dt.getMonth() + 1}-${dt.getDate()}`;
+                    series.push({ date: dt.toLocaleDateString(undefined, { month: "short", day: "numeric" }), revenue: map.get(key) || 0 });
                 }
                 setLast7DaysRevenue(series);
             } catch (err) {
                 console.error("Error fetching stats:", err);
-                // Ensure UI doesn't crash
-                setMoneyStats({
-                    revenue: { today: 0, week: 0, month: 0 },
-                    orders: { today: 0, week: 0, month: 0 },
-                });
-                setMostSoldItemToday(null);
-                setLast7DaysRevenue([]);
+                setMoneyStats({ revenue: { today: 0, week: 0, month: 0 }, orders: { today: 0, week: 0, month: 0 } });
             } finally {
                 setLoadingStats(false);
                 setLoadingChart(false);
@@ -149,168 +131,50 @@ const Home = () => {
         };
 
         fetchStats();
-
-        // ✅ Auto-refresh at midnight without reload
-        const now = new Date();
-        const msUntilMidnight =
-            new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime();
-        const midnightTimeout = setTimeout(() => {
-            fetchStats();
-            // clear any previous interval just in case
-            if (dailyRefreshIntervalRef.current) clearInterval(dailyRefreshIntervalRef.current);
-            dailyRefreshIntervalRef.current = setInterval(fetchStats, 24 * 60 * 60 * 1000); // refresh every day
-        }, msUntilMidnight);
-
-        return () => {
-            clearTimeout(midnightTimeout);
-            if (dailyRefreshIntervalRef.current) clearInterval(dailyRefreshIntervalRef.current);
-        };
     }, [canteenId, api]);
 
-    // ------------------- SOCKET REAL-TIME UPDATES -------------------
     useEffect(() => {
         if (!socket || !canteenId) return;
 
-        // helper to refresh money tiles & chart from backend (single source of truth)
-        const refreshMoneyWidgets = async () => {
-            try {
-                // Pull fresh revenue + counts
-                const statsRes = await api.get(`/canteens/${canteenId}/stats`);
-
-                const ro = statsRes?.data?.revenueAndOrders || {};
-                const normalized = {
-                    revenue: {
-                        today: ro?.day?.totalRevenue || 0,
-                        week: ro?.week?.totalRevenue || 0,
-                        month: ro?.month?.totalRevenue || 0,
-                    },
-                    orders: {
-                        today: ro?.day?.orderCount || 0,
-                        week: ro?.week?.orderCount || 0,
-                        month: ro?.month?.orderCount || 0,
-                    },
-                };
-                setMoneyStats(normalized);
-
-                // most sold
-                const top = statsRes?.data?.mostSoldToday || null;
-                setMostSoldItemToday(top ? { name: top.name, count: top.qty } : null);
-
-                // last 7 days chart
-                const raw7 = Array.isArray(statsRes?.data?.revenueLast7Days)
-                    ? statsRes.data.revenueLast7Days
-                    : [];
-                const map = new Map();
-                raw7.forEach((r) => {
-                    if (!r?._id) return;
-                    const y = r._id.year, m = r._id.month, d = r._id.day;
-                    map.set(`${y}-${m}-${d}`, r.totalRevenue || 0);
-                });
-
-                const today = new Date();
-                const series = [];
-                for (let i = 6; i >= 0; i--) {
-                    const dt = new Date(today);
-                    dt.setDate(today.getDate() - i);
-                    const y = dt.getFullYear();
-                    const m = dt.getMonth() + 1;
-                    const d = dt.getDate();
-                    const key = `${y}-${m}-${d}`;
-                    const label = dt.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-                    series.push({ date: label, revenue: map.get(key) || 0 });
-                }
-                setLast7DaysRevenue(series);
-            } catch (e) {
-                // keep UI as-is on failure
-                console.warn("refreshMoneyWidgets failed:", e?.message || e);
-            }
-        };
-
         const handleNewOrder = (newOrder) => {
             if (!newOrder) return;
-
-            // Optionally filter by canteen – uncomment if needed
-            // const incomingCanteenId = String(newOrder.canteen?._id || newOrder.canteen || "");
-            // if (incomingCanteenId !== String(canteenId)) return;
-
-            // Update total orders count
             setOrdersCount((prev) => (typeof prev === "number" ? prev + 1 : 1));
-
-            // Push into recent list (keep latest 5)
             setRecentOrders((prev) => [newOrder, ...(prev || [])].slice(0, 5));
-
-            //  Do NOT change revenue/tiles/chart here; payment is usually "pending"
-            try { toast.success(`🆕 New order ${newOrder.token || ""} received`); } catch { }
-        };
-
-        const handlePaymentUpdated = (updatedOrder) => {
-            if (!updatedOrder) return;
-
-            // Update the row in Recent Orders if present
-            setRecentOrders((prev) => {
-                const arr = Array.isArray(prev) ? prev.slice() : [];
-                const idx = arr.findIndex((o) => o._id === updatedOrder._id);
-                if (idx >= 0) arr[idx] = { ...arr[idx], paymentStatus: updatedOrder.paymentStatus };
-                return arr;
-            });
-
-            // Only when money has actually been received
-            if (String(updatedOrder.canteen?._id || updatedOrder.canteen || "") !== String(canteenId)) return;
-            if (updatedOrder.paymentStatus !== "paid") return;
-
-            // Refresh tiles + chart so Today/Week/Month all stay in sync
-            refreshMoneyWidgets();
+            toast.success(`🆕 New order ${newOrder.token || ""} received`);
         };
 
         socket.on("newOrder", handleNewOrder);
-        socket.on("paymentUpdated", handlePaymentUpdated);
+        return () => socket.off("newOrder", handleNewOrder);
+    }, [socket, canteenId]);
 
-        return () => {
-            socket.off("newOrder", handleNewOrder);
-            socket.off("paymentUpdated", handlePaymentUpdated);
-        };
-    }, [socket, canteenId, api]);
-
-    // Prevent double scans
-    const scanningLockedRef = useRef(false);
-
-    // Handle QR scan
     const handleScan = async (text) => {
-        if (!text || text === lastScanned) return;// Prevent duplicate scans 
+        if (!text || text === lastScanned) return;
         setLastScanned(text);
-
-        stopScanner(); // Stop scanning after first result
+        stopScanner();
 
         try {
-            const qrHash = text.split("/").pop(); // if URL, take last part 
+            const qrHash = text.split("/").pop();
             const res = await api.get(`/orders/verify-qr/${qrHash}`);
             setScanResult(res?.data?.order || null);
             setScanError(null);
             setModalOpen(true);
         } catch (err) {
-            console.error(err);
             setScanError(err?.response?.data?.msg || "Invalid or expired QR code");
             setScanResult(null);
-        } finally {
-            stopScanner(); // ensures camera always stops even on failure 
         }
     };
 
-    // Mark order as delivered
     const markAsDelivered = async () => {
         try {
             if (!scanResult?._id) return;
             await api.patch(`/orders/${scanResult._id}/deliver`);
-
-            // FIX: No manual client emit; server already broadcasts to student & canteen rooms.
             toast.success("Order marked as delivered ✅");
             setModalOpen(false);
-        } catch (err) {
+        } catch {
             toast.error("Failed to mark as delivered");
         }
     };
 
-    // Start scanner (using @zxing/browser)
     const startScanner = async () => {
         try {
             setScanError(null);
@@ -323,304 +187,204 @@ const Home = () => {
 
             const devices = await BrowserMultiFormatReader.listVideoInputDevices();
             if (!devices.length) throw new Error("No camera devices found");
-            const backCam = devices.find((d) =>
-                d.label.toLowerCase().includes("back")
-            ) || devices[0];
+            const backCam = devices.find((d) => d.label.toLowerCase().includes("back")) || devices[0];
 
-            // Get stream manually
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { deviceId: backCam.deviceId },
-                audio: false,
-            });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: backCam.deviceId }, audio: false });
             streamRef.current = stream;
             if (videoRef.current) videoRef.current.srcObject = stream;
 
-            // Start continuous decoding
             reader.decodeFromVideoDevice(backCam.deviceId, videoRef.current, (result, err) => {
-                if (result && !scanningLockedRef.current) {
-                    handleScan(result.getText());
-                }
-                if (err && !(err.name === "NotFoundException")) {
-                    console.warn("QR scan warning:", err);
-                }
+                if (result && !scanningLockedRef.current) handleScan(result.getText());
             });
         } catch (err) {
-            console.error("Scanner start error:", err);
-            setScanError(
-                err.message.includes("Permission")
-                    ? "Camera permission denied."
-                    : "Unable to start camera."
-            );
+            setScanError(err.message.includes("Permission") ? "Camera permission denied." : "Unable to start camera.");
             setScanning(false);
         }
     };
 
-    // Stop scanner 
     const stopScanner = () => {
         try {
-            // Stop active decoding loop 
-            if (readerRef.current) {
-                readerRef.current.stopContinuousDecode?.(); // stops decodeFromVideoDevice loop if running 
-                readerRef.current.reset();
-                readerRef.current = null;
-            }
-
-            // Stop all active camera tracks 
-            if (streamRef.current) {
-                streamRef.current.getTracks().forEach((t) => {
-                    t.stop();
-                    t.enabled = false;
-                });
-                streamRef.current = null;
-            }
-
-            // Clear video element stream 
-            if (videoRef.current) {
-                videoRef.current.srcObject = null;
-            }
-
+            if (readerRef.current) { readerRef.current.reset(); readerRef.current = null; }
+            if (streamRef.current) { streamRef.current.getTracks().forEach((t) => { t.stop(); t.enabled = false; }); streamRef.current = null; }
+            if (videoRef.current) videoRef.current.srcObject = null;
             setScanning(false);
-        } catch (e) {
-            console.warn("Error stopping scanner:", e);
-        }
+        } catch (e) { console.warn("Error stopping scanner:", e); }
     };
 
-    // Manage scanner start/stop on scanning state
     useEffect(() => {
         if (scanning) startScanner();
         else stopScanner();
         return () => stopScanner();
     }, [scanning]);
 
+    const statusColors = {
+        pending: "bg-warning/10 text-warning",
+        preparing: "bg-accent/10 text-accent",
+        ready: "bg-primary/10 text-primary",
+        completed: "bg-success/10 text-success",
+        cancelled: "bg-error/10 text-error",
+    };
 
     return (
-        <div className="p-6 bg-background text-text min-h-full">
+        <div className="space-y-6">
+            <SEO title="Canteen Dashboard" description="Monitor canteen performance on Kantevo." canonicalPath="/canteen/home" />
 
-            <SEO
-                title="Canteen Dashboard"
-                description="Monitor canteen performance, view orders, and manage menus with Kantevo."
-                canonicalPath="/canteen/home"
-            />
-
-            <h1 className="text-2xl font-semibold mb-6 text-text">
-                Welcome, {user?.name} 👋
-            </h1>
-
-            {/* QR Scanner Section */}
-            <div className="mb-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl md:text-3xl font-bold">Welcome back, {user?.name?.split(" ")[0]}! 👋</h1>
+                    <p className="text-text-secondary mt-1">Here's how your canteen is performing</p>
+                </div>
                 <button
                     onClick={() => setScanning(!scanning)}
-                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    className={`btn-primary px-5 py-2.5 flex items-center gap-2 ${scanning ? "bg-error hover:bg-error" : ""}`}
                 >
-                    <FaQrcode /> {scanning ? "Stop Scanning" : "Start Scanning"}
+                    <QrCodeIcon className="w-5 h-5" />
+                    {scanning ? "Stop Scanner" : "Scan QR Code"}
                 </button>
-
-                {scanning && (
-                    <div className="mt-4 border border-gray-300 rounded overflow-hidden max-w-sm mx-auto">
-                        <video ref={videoRef} className="w-full rounded" autoPlay muted playsInline />
-                    </div>
-                )}
-
-                {scanError && (
-                    <div className="mt-4 p-4 border border-red-400 rounded bg-red-50 text-red-800">
-                        ❌ {scanError}
-                    </div>
-                )}
             </div>
 
-            {/* ✅ Order Details Modal */}
-            <Dialog
-                open={modalOpen}
-                onClose={() => setModalOpen(false)}
-                className="relative z-50"
-            >
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-                    <DialogPanel className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg max-w-md w-full">
-                        <DialogTitle className="text-lg font-semibold text-primary mb-3">
-                            Order Details
-                        </DialogTitle>
-                        {scanResult ? (
-                            <>
-                                <p><strong>Token:</strong> {scanResult.token}</p>
-                                <p><strong>Status:</strong> {scanResult.status}</p>
-                                <p><strong>Payment:</strong> {scanResult.paymentStatus}</p>
-                                <p><strong>Total:</strong> ₹{scanResult.totalPrice}</p>
-                                <p className="mt-2 font-semibold">Items:</p>
-                                <ul className="list-disc ml-5 text-sm">
-                                    {scanResult.items?.map((i) => (
-                                        <li key={i._id}>
-                                            {i.quantity}x {i.item?.name || "Item"}
-                                        </li>
-                                    ))}
-                                </ul>
-
-                                <button
-                                    onClick={markAsDelivered}
-                                    className="mt-4 w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
-                                >
-                                    Mark as Delivered
-                                </button>
-                            </>
-                        ) : (
-                            <p>Loading...</p>
-                        )}
-                    </DialogPanel>
-                </div>
-            </Dialog>
-
-            {/* Money & Orders Stats with Skeleton */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-                {loadingStats
-                    ? Array(3)
-                        .fill(0)
-                        .map((_, i) => (
-                            <div
-                                key={i}
-                                className="bg-background border border-gray-300 p-5 rounded shadow text-center"
-                            >
-                                <SkeletonBox className="h-4 w-20 mx-auto mb-2" />
-                                <SkeletonBox className="h-6 w-24 mx-auto mb-1" />
-                                <SkeletonBox className="h-4 w-16 mx-auto" />
-                            </div>
-                        ))
-                    : moneyStats && (
-                        <>
-                            <div className="bg-background border border-gray-300 p-5 rounded shadow text-center">
-                                <p className="text-sm text-text/80">Today</p>
-                                <h2 className="text-xl font-bold text-green-600">
-                                    ₹{moneyStats.revenue.today}
-                                </h2>
-                                <p className="text-text/70">
-                                    {moneyStats.orders.today} orders
-                                </p>
-                            </div>
-                            <div className="bg-background border border-gray-300 p-5 rounded shadow text-center">
-                                <p className="text-sm text-text/80">This Week</p>
-                                <h2 className="text-xl font-bold text-green-600">
-                                    ₹{moneyStats.revenue.week}
-                                </h2>
-                                <p className="text-text/70">
-                                    {moneyStats.orders.week} orders
-                                </p>
-                            </div>
-                            <div className="bg-background border border-gray-300 p-5 rounded shadow text-center">
-                                <p className="text-sm text-text/80">This Month</p>
-                                <h2 className="text-xl font-bold text-green-600">
-                                    ₹{moneyStats.revenue.month}
-                                </h2>
-                                <p className="text-text/70">
-                                    {moneyStats.orders.month} orders
-                                </p>
-                            </div>
-                        </>
-                    )}
-            </div>
-
-            {/* Most Sold Item Today */}
-            {mostSoldItemToday && (
-                <div className="bg-background border border-gray-300 p-5 rounded shadow mb-8">
-                    <h2 className="text-lg font-semibold mb-2">Most Sold Item Today</h2>
-                    <p>{mostSoldItemToday.name} — <strong>{mostSoldItemToday.count} sold</strong></p>
-                </div>
+            {scanning && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="card p-4">
+                    <div className="max-w-sm mx-auto rounded-xl overflow-hidden border border-border">
+                        <video ref={videoRef} className="w-full" autoPlay muted playsInline />
+                    </div>
+                    <p className="text-center text-sm text-text-muted mt-3">Point camera at the order QR code</p>
+                </motion.div>
             )}
 
-            {/* 7-Day Revenue Chart */}
-            {/* Chart with Skeleton */}
-            <div className="bg-background border border-gray-300 p-5 rounded shadow mb-8">
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <FaChartLine /> Revenue (Last 7 Days)
-                </h2>
+            {scanError && (
+                <div className="p-4 rounded-xl bg-error/10 border border-error/20 text-error text-center">{scanError}</div>
+            )}
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <StatCard icon={CurrencyRupeeIcon} label="Today's Revenue" value={`₹${moneyStats?.revenue?.today || 0}`} subtext={`${moneyStats?.orders?.today || 0} orders`} color="success" loading={loadingStats} />
+                <StatCard icon={CurrencyRupeeIcon} label="This Week" value={`₹${moneyStats?.revenue?.week || 0}`} subtext={`${moneyStats?.orders?.week || 0} orders`} color="accent" loading={loadingStats} />
+                <StatCard icon={CurrencyRupeeIcon} label="This Month" value={`₹${moneyStats?.revenue?.month || 0}`} subtext={`${moneyStats?.orders?.month || 0} orders`} color="primary" loading={loadingStats} />
+            </div>
+
+            {/* Most Sold + Quick Stats */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                {mostSoldItemToday && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card p-5">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center">
+                                <FireIcon className="w-5 h-5 text-warning" />
+                            </div>
+                            <span className="text-sm text-text-muted">Top Seller Today</span>
+                        </div>
+                        <p className="font-semibold text-lg">{mostSoldItemToday.name}</p>
+                        <p className="text-sm text-text-muted">{mostSoldItemToday.count} sold</p>
+                    </motion.div>
+                )}
+                <StatCard icon={ShoppingBagIcon} label="Total Items" value={itemsCount} color="accent" loading={loadingStats} />
+                <StatCard icon={ClockIcon} label="Total Orders" value={ordersCount} color="primary" loading={loadingStats} />
+                <StatCard icon={CheckCircleIcon} label="Completed" value={completedCount} color="success" loading={loadingStats} />
+            </div>
+
+            {/* Revenue Chart */}
+            <div className="card p-5">
+                <div className="flex items-center gap-2 mb-4">
+                    <ChartBarIcon className="w-5 h-5 text-primary" />
+                    <h2 className="font-semibold">Revenue (Last 7 Days)</h2>
+                </div>
                 {loadingChart ? (
-                    <SkeletonBox className="h-[300px] w-full" />
+                    <div className="h-[300px] bg-background-subtle rounded-xl animate-pulse" />
                 ) : last7DaysRevenue.length > 0 ? (
                     <ResponsiveContainer width="100%" height={300}>
                         <LineChart data={last7DaysRevenue}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="date" />
-                            <YAxis />
-                            <Tooltip />
-                            <Line
-                                type="monotone"
-                                dataKey="revenue"
-                                stroke="#4CAF50"
-                                strokeWidth={2}
-                            />
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                            <XAxis dataKey="date" stroke="var(--color-text-muted)" fontSize={12} />
+                            <YAxis stroke="var(--color-text-muted)" fontSize={12} />
+                            <Tooltip contentStyle={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)", borderRadius: "12px" }} />
+                            <Line type="monotone" dataKey="revenue" stroke="var(--color-primary)" strokeWidth={2} dot={{ fill: "var(--color-primary)" }} />
                         </LineChart>
                     </ResponsiveContainer>
                 ) : (
-                    <p className="text-text/70">No revenue data available.</p>
+                    <p className="text-text-muted text-center py-12">No revenue data available</p>
                 )}
             </div>
 
-            {/* Old Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-                <div className="bg-background border border-gray-300 dark:border-gray-600 p-5 rounded shadow flex items-center gap-4">
-                    <FaBox className="text-3xl text-blue-500" />
-                    <div>
-                        <p className="text-text/80 text-sm">Total Items</p>
-                        <h2 className="text-xl font-bold text-text">{itemsCount}</h2>
-                    </div>
-                </div>
-
-                <div className="bg-background border border-gray-300 dark:border-gray-600 p-5 rounded shadow flex items-center gap-4">
-                    <FaClipboardList className="text-3xl text-green-500" />
-                    <div>
-                        <p className="text-text/80 text-sm">Total Orders</p>
-                        <h2 className="text-xl font-bold text-text">{ordersCount}</h2>
-                    </div>
-                </div>
-
-                <div className="bg-background border border-gray-300 dark:border-gray-600 p-5 rounded shadow flex items-center gap-4">
-                    <FaCheckCircle className="text-3xl text-purple-500" />
-                    <div>
-                        <p className="text-text/80 text-sm">Completed Orders</p>
-                        <h2 className="text-xl font-bold text-text">{completedCount}</h2>
-                    </div>
-                </div>
-            </div>
-
             {/* Recent Orders */}
-            <div className="bg-background border border-gray-300 dark:border-gray-600 p-5 rounded shadow">
-                <h2 className="text-lg font-semibold mb-4 text-text">Recent Orders</h2>
+            <div className="card p-5">
+                <h2 className="font-semibold mb-4">Recent Orders</h2>
                 <div className="overflow-x-auto">
-                    <table className="min-w-full text-left text-sm text-text">
+                    <table className="w-full text-sm">
                         <thead>
-                            <tr className="border-b border-gray-300 dark:border-gray-600 text-text/80">
-                                <th className="py-2">Token</th>
-                                <th className="py-2">Status</th>
-                                <th className="py-2">Payment</th>
-                                <th className="py-2">Items</th>
-                                <th className="py-2">Total</th>
+                            <tr className="border-b border-border text-text-muted">
+                                <th className="text-left py-3 px-2">Token</th>
+                                <th className="text-left py-3 px-2">Status</th>
+                                <th className="text-left py-3 px-2">Payment</th>
+                                <th className="text-left py-3 px-2">Items</th>
+                                <th className="text-right py-3 px-2">Total</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {recentOrders.map((order) => (
-                                <tr
-                                    key={order._id}
-                                    className="border-b border-gray-300 dark:border-gray-600 hover:bg-primary/10"
-                                >
-                                    <td className="py-2">{order.token || "-"}</td>
-                                    <td className="py-2 capitalize">{order.status}</td>
-                                    <td className="py-2 capitalize">{order.paymentStatus}</td>
-                                    <td className="py-2">
-                                        {Array.isArray(order.items)
-                                            ? order.items.map((i) => `${i.quantity}x`).join(", ")
-                                            : "-"}
-                                    </td>
-                                    <td className="py-2">₹{order.totalPrice}</td>
-                                </tr>
-                            ))}
-                            {recentOrders.length === 0 && (
-                                <tr>
-                                    <td colSpan={5} className="text-center py-4 text-text/80">
-                                        No recent orders found.
-                                    </td>
-                                </tr>
+                            {recentOrders.length === 0 ? (
+                                <tr><td colSpan={5} className="text-center py-8 text-text-muted">No recent orders</td></tr>
+                            ) : (
+                                recentOrders.map((order) => (
+                                    <tr key={order._id} className="border-b border-border hover:bg-background-subtle transition-colors">
+                                        <td className="py-3 px-2 font-medium">#{order.token || "-"}</td>
+                                        <td className="py-3 px-2">
+                                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[order.status] || ""}`}>
+                                                {order.status}
+                                            </span>
+                                        </td>
+                                        <td className="py-3 px-2">
+                                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${order.paymentStatus === "paid" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}`}>
+                                                {order.paymentStatus}
+                                            </span>
+                                        </td>
+                                        <td className="py-3 px-2 text-text-secondary">
+                                            {order.items.map((i) => `${i.quantity}x ${i.item?.name || "Unknown"}`).join(", ")}
+                                        </td>
+                                        <td className="py-3 px-2 text-right font-semibold">₹{order.totalPrice}</td>
+                                    </tr>
+                                ))
                             )}
                         </tbody>
                     </table>
                 </div>
             </div>
+
+            {/* QR Scan Modal */}
+            <Dialog open={modalOpen} onClose={() => setModalOpen(false)} className="relative z-50">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <DialogPanel className="card p-6 max-w-md w-full">
+                        <div className="flex items-center justify-between mb-4">
+                            <DialogTitle className="text-lg font-bold">Order Details</DialogTitle>
+                            <button onClick={() => setModalOpen(false)} className="p-2 hover:bg-background-subtle rounded-lg">
+                                <XMarkIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+                        {scanResult ? (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <div><span className="text-text-muted">Token:</span> <span className="font-semibold">#{scanResult.token}</span></div>
+                                    <div><span className="text-text-muted">Status:</span> <span className={`px - 2 py - 0.5 rounded - full text - xs ${statusColors[scanResult.status]}`}>{scanResult.status}</span></div>
+                                    <div><span className="text-text-muted">Payment:</span> <span className="font-semibold">{scanResult.paymentStatus}</span></div>
+                                    <div><span className="text-text-muted">Total:</span> <span className="font-semibold text-primary">₹{scanResult.totalPrice}</span></div>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-text-muted mb-2">Items:</p>
+                                    <div className="space-y-1">
+                                        {scanResult.items?.map((i) => (
+                                            <div key={i._id} className="text-sm">{i.quantity}x {i.item?.name || "Item"}</div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <button onClick={markAsDelivered} className="btn-primary w-full py-3">
+                                    <CheckCircleIcon className="w-5 h-5 mr-2 inline" />
+                                    Mark as Delivered
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 text-text-muted">Loading...</div>
+                        )}
+                    </DialogPanel>
+                </div>
+            </Dialog>
         </div>
     );
 };

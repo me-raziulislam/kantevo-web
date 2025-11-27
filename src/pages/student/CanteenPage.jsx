@@ -1,15 +1,26 @@
 // src/pages/student/CanteenPage.jsx
+// Premium canteen menu page
+
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
 import { useParams, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
+import {
+    ArrowLeftIcon,
+    ClockIcon,
+    FunnelIcon,
+    BuildingStorefrontIcon
+} from "@heroicons/react/24/outline";
 import SEO from "../../components/SEO";
 import ItemCard from "../../components/ItemCard";
 import ViewCartButton from "../../components/ViewCartButton";
 
 dayjs.extend(duration);
+
+const categories = ["All", "Breakfast", "Meal", "Beverage", "Snack", "Dessert", "Other"];
 
 const CanteenPage = () => {
     const { user, api, socket, accessToken, loading: authLoading } = useAuth();
@@ -24,23 +35,21 @@ const CanteenPage = () => {
     const [nextOpeningText, setNextOpeningText] = useState("");
     const [nowTime, setNowTime] = useState(dayjs());
     const [categoryFilter, setCategoryFilter] = useState("All");
-    const [loading, setLoading] = useState(false); // added loading state
+    const [loading, setLoading] = useState(false);
 
-    // Live clock
     useEffect(() => {
         const t = setInterval(() => setNowTime(dayjs()), 1000);
         return () => clearInterval(t);
     }, []);
 
-    // Fetch public data immediately, then cart only if logged in
     useEffect(() => {
         let cancelled = false;
         (async () => {
             try {
                 setLoading(true);
                 const [canteenRes, itemsRes] = await Promise.all([
-                    api.get(`/canteens/${canteenId}`),       // public
-                    api.get(`/canteens/${canteenId}/items`), // public
+                    api.get(`/canteens/${canteenId}`),
+                    api.get(`/canteens/${canteenId}/items`),
                 ]);
                 if (cancelled) return;
                 setCanteen(canteenRes.data);
@@ -56,7 +65,6 @@ const CanteenPage = () => {
         return () => { cancelled = true; };
     }, [api, canteenId]);
 
-    // Fetch cart AFTER auth is ready; suppress 401 toast on reload
     useEffect(() => {
         if (authLoading || !accessToken) return;
         let cancelled = false;
@@ -67,14 +75,11 @@ const CanteenPage = () => {
                 const map = {};
                 cartRes.data?.items?.forEach((i) => (map[i.item._id] = i.quantity));
                 setCart(map);
-            } catch (err) {
-                // Do not toast here on reload; cart is optional context on this page
-            }
+            } catch (err) { }
         })();
         return () => { cancelled = true; };
     }, [api, accessToken, authLoading]);
 
-    // Socket listeners
     useEffect(() => {
         if (!socket) return;
         socket.emit("joinCanteen", canteenId);
@@ -94,7 +99,6 @@ const CanteenPage = () => {
         };
     }, [socket, canteenId]);
 
-    // Update cart logic
     const updateCart = async (itemId, newQty) => {
         if (newQty < 0) return;
         try {
@@ -120,14 +124,11 @@ const CanteenPage = () => {
         }
     };
 
-    // Filtered items
     const filteredItems = useMemo(
-        () =>
-            items.filter((item) => (categoryFilter !== "All" ? item.category === categoryFilter : true)),
+        () => items.filter((item) => (categoryFilter !== "All" ? item.category === categoryFilter : true)),
         [items, categoryFilter]
     );
 
-    // Time availability display
     const getCountdownAndStatus = (item) => {
         const from = item.availableFrom
             ? dayjs().hour(item.availableFrom.split(":")[0]).minute(item.availableFrom.split(":")[1])
@@ -148,109 +149,120 @@ const CanteenPage = () => {
     const cartCount = Object.values(cart).reduce((a, b) => a + b, 0);
 
     return (
-        <div className="min-h-screen space-y-8">
+        <div className="space-y-6">
             <SEO
                 title={canteen ? `${canteen.name} - Menu` : "Canteen Menu"}
-                description="View canteen details and browse available items for ordering."
+                description="View canteen menu and order items."
                 canonicalPath={`/student/canteen/${canteenId}`}
             />
 
-            {/* Back button */}
+            {/* Back Button */}
             <button
                 onClick={() => navigate(-1)}
-                className="text-primary hover:underline font-semibold text-sm"
+                className="flex items-center gap-2 text-text-secondary hover:text-primary transition-colors"
             >
-                ← Back to Canteens
+                <ArrowLeftIcon className="w-5 h-5" />
+                <span className="font-medium">Back to Canteens</span>
             </button>
 
-            {/* Show loading placeholder first */}
             {loading ? (
-                <p className="text-text/70">Loading canteen items</p>
+                <div className="card p-12 text-center">
+                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                    <p className="text-text-secondary">Loading menu...</p>
+                </div>
             ) : (
                 <>
-                    {/* Canteen header */}
+                    {/* Canteen Header */}
                     {canteen && (
-                        <div className="border border-gray-200 dark:border-gray-700 rounded-2xl p-5 shadow-sm bg-background">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                                <div>
-                                    <h1 className="text-2xl font-bold">{canteen.name}</h1>
-                                    <p className="text-sm text-text/70">
-                                        {canteen.cuisines?.join(", ") || "Canteen"} ·{" "}
-                                        {canteen.isOpen ? (
-                                            <span className="text-green-600 font-medium">Open Now</span>
-                                        ) : (
-                                            <span className="text-red-600 font-medium">Closed</span>
-                                        )}
-                                    </p>
-                                    <p className="text-xs text-text/60 mt-1">
-                                        {canteen.openingTime} - {canteen.closingTime}{" "}
-                                        {!canteen.isOpenOnSunday && "(Closed on Sundays)"}
-                                    </p>
-                                </div>
-                                {canteen.upiId && (
-                                    <div className="text-sm text-text/80">
-                                        <p className="font-medium">UPI ID</p>
-                                        <p className="font-mono bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-md">
-                                            {canteen.upiId}
-                                        </p>
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="card p-6"
+                        >
+                            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <h1 className="text-2xl font-bold">{canteen.name}</h1>
+                                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${canteen.isOpen ? "bg-success/10 text-success" : "bg-error/10 text-error"}`}>
+                                            {canteen.isOpen ? "Open" : "Closed"}
+                                        </span>
                                     </div>
-                                )}
+                                    <p className="text-text-secondary text-sm mb-2">
+                                        {canteen.cuisines?.join(" • ") || "Campus Canteen"}
+                                    </p>
+                                    <div className="flex items-center gap-2 text-sm text-text-muted">
+                                        <ClockIcon className="w-4 h-4" />
+                                        <span>{canteen.openingTime} - {canteen.closingTime}</span>
+                                        {!canteen.isOpenOnSunday && <span className="text-warning">• Closed on Sundays</span>}
+                                    </div>
+                                    {canteen.about && (
+                                        <p className="text-text-secondary text-sm mt-3">{canteen.about}</p>
+                                    )}
+                                </div>
                             </div>
-                            {canteen.about && (
-                                <p className="text-text/80 text-sm mt-3 leading-relaxed">
-                                    {canteen.about}
-                                </p>
-                            )}
-                        </div>
+                        </motion.div>
                     )}
 
-                    {/* Category filter */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold">Filter by Category:</span>
-                        <select
-                            value={categoryFilter}
-                            onChange={(e) => setCategoryFilter(e.target.value)}
-                            className="border border-gray-300 dark:border-gray-600 px-2 py-1 rounded bg-background focus:ring-2 focus:ring-primary"
-                        >
-                            <option>All</option>
-                            <option>Breakfast</option>
-                            <option>Meal</option>
-                            <option>Beverage</option>
-                            <option>Snack</option>
-                            <option>Dessert</option>
-                            <option>Other</option>
-                        </select>
+                    {/* Category Filter */}
+                    <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                        <FunnelIcon className="w-5 h-5 text-text-muted shrink-0" />
+                        {categories.map((cat) => (
+                            <button
+                                key={cat}
+                                onClick={() => setCategoryFilter(cat)}
+                                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${categoryFilter === cat
+                                        ? "bg-primary text-white"
+                                        : "bg-background-subtle hover:bg-primary/10"
+                                    }`}
+                            >
+                                {cat}
+                            </button>
+                        ))}
                     </div>
 
-                    {/* Items */}
-                    <div className="space-y-4">
+                    {/* Items - extra padding at bottom for floating cart button */}
+                    <div className="space-y-4 pb-16">
                         {filteredItems.length ? (
-                            filteredItems.map((item) => {
+                            filteredItems.map((item, i) => {
                                 const { text, isAvailable } = getCountdownAndStatus(item);
                                 const qty = cart[item._id] || 0;
                                 const availableNow = item.canAddToCart && isAvailable && canteenOpen;
                                 const disabled = !availableNow || loadingItem === item._id;
                                 return (
-                                    <ItemCard
+                                    <motion.div
                                         key={item._id}
-                                        item={item}
-                                        quantity={qty}
-                                        disabled={disabled}
-                                        countdownText={text}
-                                        isAvailableNow={availableNow}
-                                        loading={loadingItem === item._id}
-                                        onAdd={() => updateCart(item._id, 1)}
-                                        onInc={() => updateCart(item._id, qty + 1)}
-                                        onDec={() => updateCart(item._id, Math.max(0, qty - 1))}
-                                    />
+                                        initial={{ opacity: 0, y: 8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: i * 0.03 }}
+                                    >
+                                        <ItemCard
+                                            item={item}
+                                            quantity={qty}
+                                            disabled={disabled}
+                                            countdownText={text}
+                                            isAvailableNow={availableNow}
+                                            loading={loadingItem === item._id}
+                                            onAdd={() => updateCart(item._id, 1)}
+                                            onInc={() => updateCart(item._id, qty + 1)}
+                                            onDec={() => updateCart(item._id, Math.max(0, qty - 1))}
+                                        />
+                                    </motion.div>
                                 );
                             })
                         ) : (
-                            <p className="text-text/70">No items found.</p>
+                            <div className="card p-12 text-center">
+                                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                                    <BuildingStorefrontIcon className="w-8 h-8 text-primary" />
+                                </div>
+                                <h3 className="font-semibold text-lg mb-2">No items found</h3>
+                                <p className="text-text-secondary text-sm">
+                                    {categoryFilter !== "All" ? "Try a different category" : "This canteen hasn't added any items yet"}
+                                </p>
+                            </div>
                         )}
                     </div>
 
-                    {/* Floating View Cart Button */}
+                    {/* Floating Cart Button */}
                     {cartCount > 0 && <ViewCartButton itemCount={cartCount} />}
                 </>
             )}

@@ -1,10 +1,21 @@
+// src/pages/canteen/Profile.jsx
+// Premium canteen profile page
+
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
+import { motion } from "framer-motion";
+import {
+    UserIcon,
+    PhoneIcon,
+    ClockIcon,
+    CameraIcon,
+    InformationCircleIcon
+} from "@heroicons/react/24/outline";
 import SEO from "../../components/SEO";
 
 const Profile = () => {
-    const { user, api } = useAuth(); // get centralized api instance
+    const { user, api } = useAuth();
     const [profile, setProfile] = useState(null);
     const [form, setForm] = useState({ name: "", phone: "", about: "" });
     const [loading, setLoading] = useState(true);
@@ -13,13 +24,11 @@ const Profile = () => {
     const [preview, setPreview] = useState(null);
     const fileInputRef = useRef();
 
-    // --- Canteen settings state ---
+    // Canteen settings state
     const [canteen, setCanteen] = useState(null);
     const [canteenLoading, setCanteenLoading] = useState(true);
     const [canteenSaving, setCanteenSaving] = useState(false);
     const [canteenError, setCanteenError] = useState(null);
-    const [upiQrPreview, setUpiQrPreview] = useState(null);
-    const upiQrFileRef = useRef();
 
     useEffect(() => {
         if (!user) return;
@@ -44,7 +53,6 @@ const Profile = () => {
         const fetchCanteen = async () => {
             setCanteenLoading(true);
             try {
-                // Fetch canteen linked directly to the logged-in owner
                 const res = await api.get(`/canteens/owner/${user._id}`);
                 setCanteen(res.data);
             } catch (err) {
@@ -59,7 +67,12 @@ const Profile = () => {
     }, [user, api]);
 
     const handleChange = (e) => {
-        setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+        const { name, value } = e.target;
+        if (name === "phone") {
+            setForm((prev) => ({ ...prev, [name]: value.replace(/\D/g, "").slice(0, 10) }));
+        } else {
+            setForm((prev) => ({ ...prev, [name]: value }));
+        }
     };
 
     const handleFileChange = (e) => {
@@ -84,46 +97,31 @@ const Profile = () => {
             formData.append("phone", form.phone);
             formData.append("about", form.about);
 
-            if (fileInputRef.current.files[0]) {
+            if (fileInputRef.current?.files[0]) {
                 formData.append("profilePicture", fileInputRef.current.files[0]);
             }
 
-            const res = await api.put(
-                `/canteen-owners/profile/${user._id}`,
-                formData,
-                {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                    },
-                }
-            );
+            const res = await api.put(`/canteen-owners/profile/${user._id}`, formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
 
             setProfile(res.data);
             setPreview(null);
             toast.success("Profile updated successfully!");
         } catch (err) {
             setError(err.response?.data?.message || "Failed to update profile");
+            toast.error("Failed to update profile");
         } finally {
             setSaving(false);
         }
     };
 
-    // --- Handle Canteen form changes ---
     const handleCanteenChange = (e) => {
         const { name, value, type, checked } = e.target;
         setCanteen((prev) => ({
             ...prev,
             [name]: type === "checkbox" ? checked : value,
         }));
-    };
-
-    const handleUpiQrChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setUpiQrPreview(URL.createObjectURL(file));
-        } else {
-            setUpiQrPreview(null);
-        }
     };
 
     const handleCanteenSave = async (e) => {
@@ -134,26 +132,12 @@ const Profile = () => {
         setCanteenError(null);
 
         try {
-            // --- Save UPI ID and QR first ---
-            const upiFormData = new FormData();
-            if (canteen.upiId) upiFormData.append("upiId", canteen.upiId);
-            if (upiQrFileRef.current.files[0]) {
-                upiFormData.append("upiQr", upiQrFileRef.current.files[0]);
-            }
-            if (upiFormData.has("upiId") || upiFormData.has("upiQr")) {
-                await api.put(
-                    `/canteens/${canteen._id}/profile`,
-                    upiFormData,
-                    { headers: { "Content-Type": "multipart/form-data" } }
-                );
-            }
-
-            // --- Save status ---
+            // Save status
             await api.patch(`/canteens/${canteen._id}/status`, {
                 isOpen: canteen.isOpen,
             });
 
-            // --- Save timings and special dates ---
+            // Save timings
             await api.patch(`/canteens/${canteen._id}/timings`, {
                 openingTime: canteen.openingTime,
                 closingTime: canteen.closingTime,
@@ -163,278 +147,280 @@ const Profile = () => {
             });
 
             toast.success("Canteen settings updated!");
-            setUpiQrPreview(null);
         } catch (err) {
             setCanteenError(err.response?.data?.message || "Failed to update canteen settings");
+            toast.error("Failed to update canteen settings");
         } finally {
             setCanteenSaving(false);
         }
     };
 
-    if (loading)
+    if (loading) {
         return (
-            <div className="p-6 text-text/80 bg-background min-h-[150px] text-center">
-                Loading profile...
+            <div className="card p-12 text-center">
+                <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-text-secondary">Loading profile...</p>
             </div>
         );
-    if (error)
+    }
+
+    if (error && !profile) {
         return (
-            <div className="p-6 text-red-500 bg-background min-h-[150px] text-center font-semibold">
-                Error: {error}
+            <div className="card p-12 text-center">
+                <p className="text-error font-medium">{error}</p>
             </div>
         );
+    }
 
     return (
-        <div className="p-6 max-w-xl mx-auto bg-background border border-gray-200 dark:border-gray-700 text-text rounded shadow">
+        <div className="space-y-6 max-w-3xl mx-auto">
+            <SEO title="Profile Settings" description="Manage your profile and canteen settings." canonicalPath="/canteen/profile" />
 
-            <SEO
-                title="Canteen Profile"
-                description="Update your canteen’s profile, UPI details, and contact information on Kantevo."
-                canonicalPath="/canteen/profile"
-            />
+            <h1 className="text-2xl md:text-3xl font-bold">Profile Settings</h1>
 
-            <h1 className="text-xl font-semibold mb-6 text-text">My Profile</h1>
+            {/* Owner Profile */}
+            <motion.form
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                onSubmit={handleSubmit}
+                className="card p-6 space-y-6"
+            >
+                <h2 className="font-semibold text-lg border-b border-border pb-3">Owner Information</h2>
 
-            {/* --- Owner Profile Form --- */}
-            <form onSubmit={handleSubmit} className="space-y-6 mb-10">
-                {/* profile picture */}
-                <div className="flex items-center space-x-4">
-                    <div className="w-20 h-20 rounded-full overflow-hidden border border-gray-300 dark:border-gray-600">
-                        <img
-                            src={
-                                preview ||
-                                profile?.profilePicture ||
-                                "https://via.placeholder.com/150?text=Profile"
-                            }
-                            alt="Profile"
-                            className="w-full h-full object-cover"
-                        />
-                    </div>
-                    <div>
-                        <label
-                            htmlFor="profilePicture"
-                            className="cursor-pointer text-primary underline text-sm"
-                        >
-                            Change Picture
-                        </label>
-                        <input
-                            id="profilePicture"
-                            name="profilePicture"
-                            type="file"
-                            accept="image/*"
-                            ref={fileInputRef}
-                            onChange={handleFileChange}
-                            className="hidden"
-                        />
-                    </div>
-                </div>
-
-                {/* name */}
-                <div>
-                    <label htmlFor="name" className="block font-medium mb-1 text-text/80">
-                        Name
-                    </label>
-                    <input
-                        id="name"
-                        name="name"
-                        type="text"
-                        value={form.name}
-                        onChange={handleChange}
-                        className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-background text-text focus:outline-none focus:ring-2 focus:ring-primary"
-                        required
-                    />
-                </div>
-
-                {/* phone */}
-                <div>
-                    <label htmlFor="phone" className="block font-medium mb-1 text-text/80">
-                        Phone
-                    </label>
-                    <input
-                        id="phone"
-                        name="phone"
-                        type="tel"
-                        value={form.phone}
-                        onChange={handleChange}
-                        placeholder="Phone number"
-                        className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-background text-text focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                </div>
-
-                {/* about */}
-                <div>
-                    <label htmlFor="about" className="block font-medium mb-1 text-text/80">
-                        About
-                    </label>
-                    <textarea
-                        id="about"
-                        name="about"
-                        rows={3}
-                        value={form.about}
-                        onChange={handleChange}
-                        placeholder="About you"
-                        className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 resize-none bg-background text-text focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                </div>
-
-                <button
-                    type="submit"
-                    disabled={saving}
-                    className={`w-full py-2 rounded text-white ${saving
-                        ? "bg-primary/50 cursor-not-allowed"
-                        : "bg-primary hover:bg-primary-dark"
-                        } transition`}
-                >
-                    {saving ? "Saving..." : "Save Changes"}
-                </button>
-            </form>
-
-            {/* --- Canteen Settings Form --- */}
-            <h2 className="text-lg font-semibold mb-4 text-text">Canteen Settings</h2>
-            {canteenLoading ? (
-                <p>Loading canteen settings...</p>
-            ) : canteenError ? (
-                <p className="text-red-500">{canteenError}</p>
-            ) : canteen ? (
-                <form onSubmit={handleCanteenSave} className="space-y-4">
-
-                    {/* UPI ID */}
-                    {/* <div>
-                        <label className="block font-medium mb-1">UPI ID</label>
-                        <input
-                            type="text"
-                            name="upiId"
-                            value={canteen.upiId || ""}
-                            onChange={handleCanteenChange}
-                            placeholder="canteen@upi"
-                            className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2"
-                        />
-                    </div> */}
-
-                    {/* UPI QR */}
-                    {/* <div className="flex items-center space-x-4">
-                        <div className="w-28 h-28 rounded border border-gray-300 dark:border-gray-600 overflow-hidden">
+                <div className="flex items-center gap-6">
+                    <div className="relative group">
+                        <div className="w-20 h-20 rounded-full overflow-hidden ring-4 ring-primary/20">
                             <img
-                                src={
-                                    upiQrPreview ||
-                                    canteen.upiQrUrl ||
-                                    "https://via.placeholder.com/150?text=QR"
-                                }
-                                alt="UPI QR"
+                                src={preview || profile?.profilePicture || `https://api.dicebear.com/7.x/thumbs/svg?seed=${profile?.name || "user"}`}
+                                alt="Profile"
                                 className="w-full h-full object-cover"
                             />
                         </div>
-                        <div>
-                            <label
-                                htmlFor="upiQr"
-                                className="cursor-pointer text-primary underline text-sm"
-                            >
-                                Change QR
-                            </label>
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center shadow-lg hover:bg-primary-dark transition-colors"
+                        >
+                            <CameraIcon className="w-4 h-4" />
+                        </button>
+                        <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold">{profile?.name}</h3>
+                        <p className="text-text-muted text-sm">{profile?.email}</p>
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="text-primary text-sm mt-1 hover:underline"
+                        >
+                            Change photo
+                        </button>
+                    </div>
+                </div>
+
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-text-secondary mb-2">Full Name</label>
+                        <div className="relative">
+                            <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted pointer-events-none" />
                             <input
-                                id="upiQr"
-                                name="upiQr"
-                                type="file"
-                                accept="image/*"
-                                ref={upiQrFileRef}
-                                onChange={handleUpiQrChange}
-                                className="hidden"
+                                name="name"
+                                value={form.name}
+                                onChange={handleChange}
+                                className="input input-with-icon"
+                                required
                             />
                         </div>
-                    </div> */}
-
-                    <div className="flex items-center space-x-2">
-                        <input
-                            id="isOpen"
-                            name="isOpen"
-                            type="checkbox"
-                            checked={canteen.isOpen}
-                            onChange={handleCanteenChange}
-                        />
-                        <label htmlFor="isOpen">Currently Open</label>
                     </div>
 
                     <div>
-                        <label className="block font-medium mb-1">Opening Time</label>
-                        <input
-                            type="time"
-                            name="openingTime"
-                            value={canteen.openingTime || ""}
-                            onChange={handleCanteenChange}
-                            className="border rounded px-2 py-1 w-full"
-                        />
+                        <label className="block text-sm font-medium text-text-secondary mb-2">Phone Number</label>
+                        <div className="relative">
+                            <PhoneIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted pointer-events-none" />
+                            <input
+                                name="phone"
+                                value={form.phone}
+                                onChange={handleChange}
+                                maxLength={10}
+                                className="input input-with-icon"
+                                placeholder="10-digit phone"
+                            />
+                        </div>
                     </div>
 
                     <div>
-                        <label className="block font-medium mb-1">Closing Time</label>
-                        <input
-                            type="time"
-                            name="closingTime"
-                            value={canteen.closingTime || ""}
-                            onChange={handleCanteenChange}
-                            className="border rounded px-2 py-1 w-full"
+                        <label className="block text-sm font-medium text-text-secondary mb-2">About</label>
+                        <textarea
+                            name="about"
+                            value={form.about}
+                            onChange={handleChange}
+                            rows={3}
+                            className="input min-h-[80px] resize-none"
+                            placeholder="Tell us about yourself..."
                         />
                     </div>
+                </div>
 
-                    <div className="flex items-center space-x-2">
-                        <input
-                            id="isOpenOnSunday"
-                            name="isOpenOnSunday"
-                            type="checkbox"
-                            checked={canteen.isOpenOnSunday}
-                            onChange={handleCanteenChange}
-                        />
-                        <label htmlFor="isOpenOnSunday">Open on Sunday</label>
+                {error && (
+                    <div className="p-4 rounded-xl bg-error/10 border border-error/20">
+                        <p className="text-sm text-error">{error}</p>
                     </div>
+                )}
 
-                    {/* Future: Special openings/closings date pickers */}
-                    {/* For now, just text inputs or arrays can be used */}
-                    <div>
-                        <label className="block font-medium mb-1">Special Openings (comma-separated dates YYYY-MM-DD)</label>
-                        <input
-                            type="text"
-                            name="specialOpenings"
-                            value={(canteen.specialOpenings || []).join(",")}
-                            onChange={(e) =>
-                                setCanteen((prev) => ({
-                                    ...prev,
-                                    specialOpenings: e.target.value.split(",").map((d) => d.trim()),
-                                }))
-                            }
-                            className="border rounded px-2 py-1 w-full"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block font-medium mb-1">Special Closings (comma-separated dates YYYY-MM-DD)</label>
-                        <input
-                            type="text"
-                            name="specialClosings"
-                            value={(canteen.specialClosings || []).join(",")}
-                            onChange={(e) =>
-                                setCanteen((prev) => ({
-                                    ...prev,
-                                    specialClosings: e.target.value.split(",").map((d) => d.trim()),
-                                }))
-                            }
-                            className="border rounded px-2 py-1 w-full"
-                        />
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={canteenSaving}
-                        className={`w-full py-2 rounded text-white ${canteenSaving
-                            ? "bg-primary/50 cursor-not-allowed"
-                            : "bg-primary hover:bg-primary-dark"
-                            } transition`}
-                    >
-                        {canteenSaving ? "Saving..." : "Save Canteen Settings"}
+                <div className="flex justify-end pt-4 border-t border-border">
+                    <button type="submit" disabled={saving} className="btn-primary px-6 py-2.5 disabled:opacity-50">
+                        {saving ? "Saving..." : "Save Profile"}
                     </button>
-                </form>
-            ) : (
-                <p>No canteen found for your account.</p>
-            )}
+                </div>
+            </motion.form>
+
+            {/* Canteen Settings */}
+            <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="card p-6"
+            >
+                <h2 className="font-semibold text-lg border-b border-border pb-3 mb-6">Canteen Settings</h2>
+
+                {canteenLoading ? (
+                    <div className="text-center py-8">
+                        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                        <p className="text-text-muted text-sm">Loading canteen settings...</p>
+                    </div>
+                ) : canteenError && !canteen ? (
+                    <div className="p-4 rounded-xl bg-error/10 border border-error/20">
+                        <p className="text-sm text-error">{canteenError}</p>
+                    </div>
+                ) : canteen ? (
+                    <form onSubmit={handleCanteenSave} className="space-y-5">
+                        {/* Status Toggle */}
+                        <label className="flex items-center gap-3 cursor-pointer p-4 rounded-xl bg-background-subtle">
+                            <div className="relative">
+                                <input
+                                    type="checkbox"
+                                    name="isOpen"
+                                    className="sr-only peer"
+                                    checked={canteen.isOpen || false}
+                                    onChange={handleCanteenChange}
+                                />
+                                <div className={`w-11 h-6 rounded-full transition-colors ${canteen.isOpen ? "bg-success" : "bg-border"}`}>
+                                    <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${canteen.isOpen ? "translate-x-5" : ""}`} />
+                                </div>
+                            </div>
+                            <div>
+                                <span className="font-medium">Currently Open</span>
+                                <p className="text-xs text-text-muted">Toggle to open/close your canteen</p>
+                            </div>
+                        </label>
+
+                        {/* Operating Hours */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-text-secondary mb-2">Opening Time</label>
+                                <div className="relative">
+                                    <ClockIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted pointer-events-none" />
+                                    <input
+                                        type="time"
+                                        name="openingTime"
+                                        value={canteen.openingTime || ""}
+                                        onChange={handleCanteenChange}
+                                        className="input input-with-icon"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-text-secondary mb-2">Closing Time</label>
+                                <div className="relative">
+                                    <ClockIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted pointer-events-none" />
+                                    <input
+                                        type="time"
+                                        name="closingTime"
+                                        value={canteen.closingTime || ""}
+                                        onChange={handleCanteenChange}
+                                        className="input input-with-icon"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Sunday Toggle */}
+                        <label className="flex items-center gap-3 cursor-pointer">
+                            <div className="relative">
+                                <input
+                                    type="checkbox"
+                                    name="isOpenOnSunday"
+                                    className="sr-only peer"
+                                    checked={canteen.isOpenOnSunday || false}
+                                    onChange={handleCanteenChange}
+                                />
+                                <div className={`w-11 h-6 rounded-full transition-colors ${canteen.isOpenOnSunday ? "bg-success" : "bg-border"}`}>
+                                    <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${canteen.isOpenOnSunday ? "translate-x-5" : ""}`} />
+                                </div>
+                            </div>
+                            <span className="text-sm font-medium">Open on Sundays</span>
+                        </label>
+
+                        {/* Special Days */}
+                        <div className="card-flat p-4 space-y-4">
+                            <div className="flex items-center gap-2 text-sm text-text-muted">
+                                <InformationCircleIcon className="w-4 h-4" />
+                                <span>Special days override regular schedule</span>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-text-secondary mb-2">
+                                    Special Openings <span className="text-text-muted font-normal">(comma-separated: YYYY-MM-DD)</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={(canteen.specialOpenings || []).join(", ")}
+                                    onChange={(e) =>
+                                        setCanteen((prev) => ({
+                                            ...prev,
+                                            specialOpenings: e.target.value.split(",").map((d) => d.trim()).filter(Boolean),
+                                        }))
+                                    }
+                                    className="input"
+                                    placeholder="2025-12-25, 2025-01-01"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-text-secondary mb-2">
+                                    Special Closings <span className="text-text-muted font-normal">(comma-separated: YYYY-MM-DD)</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={(canteen.specialClosings || []).join(", ")}
+                                    onChange={(e) =>
+                                        setCanteen((prev) => ({
+                                            ...prev,
+                                            specialClosings: e.target.value.split(",").map((d) => d.trim()).filter(Boolean),
+                                        }))
+                                    }
+                                    className="input"
+                                    placeholder="2025-08-15, 2025-10-02"
+                                />
+                            </div>
+                        </div>
+
+                        {canteenError && (
+                            <div className="p-4 rounded-xl bg-error/10 border border-error/20">
+                                <p className="text-sm text-error">{canteenError}</p>
+                            </div>
+                        )}
+
+                        <div className="flex justify-end pt-4 border-t border-border">
+                            <button type="submit" disabled={canteenSaving} className="btn-primary px-6 py-2.5 disabled:opacity-50">
+                                {canteenSaving ? "Saving..." : "Save Canteen Settings"}
+                            </button>
+                        </div>
+                    </form>
+                ) : (
+                    <div className="text-center py-8 text-text-muted">
+                        No canteen found for your account.
+                    </div>
+                )}
+            </motion.div>
         </div>
     );
 };

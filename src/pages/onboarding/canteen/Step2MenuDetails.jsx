@@ -1,11 +1,17 @@
 // Step2MenuDetails.jsx
-// Saves full canteen details with special openings/closings (array of dates)
-// Disables Next until all required fields valid
-// Data persists from user.canteen if available (prefill)
+// Premium canteen menu & timings step
 
 import { useOutletContext } from "react-router-dom";
 import { useState, useEffect } from "react";
+import {
+    BuildingStorefrontIcon,
+    ClockIcon,
+    CalendarDaysIcon,
+    XMarkIcon
+} from "@heroicons/react/24/outline";
 import { useAuth } from "../../../context/AuthContext";
+
+const cuisineTags = ["North Indian", "South Indian", "Fast Food", "Chinese", "Biryani", "Pizza", "Snacks", "Beverages"];
 
 const Step2MenuDetails = () => {
     const { saveOnboardingProgress, user } = useAuth();
@@ -35,8 +41,6 @@ const Step2MenuDetails = () => {
         /^([01]\d|2[0-3]):([0-5]\d)$/.test(closeTime);
     const valid = restaurantName && cuisines.length > 0 && timeOk;
 
-    const tags = ["North Indian", "South Indian", "Fast Food", "Chinese", "Biryani", "Pizza"];
-
     const toggleCuisine = (tag) =>
         setCuisines((prev) => (prev.includes(tag) ? prev.filter((x) => x !== tag) : [...prev, tag]));
 
@@ -55,7 +59,6 @@ const Step2MenuDetails = () => {
         setFormValidity((prev) => ({ ...prev, step2: valid }));
     }, [valid, setFormValidity]);
 
-    // Save only when "Next" is clicked (like student Step2)
     useEffect(() => {
         setHandleStepNext(() => async () => {
             if (!valid) return false;
@@ -65,7 +68,7 @@ const Step2MenuDetails = () => {
                     cuisines,
                     openTime,
                     closeTime,
-                    specialOpenings, // send as 'YYYY-MM-DD' strings, backend converts to Date
+                    specialOpenings,
                     specialClosings,
                     isOpenOnSunday,
                     about,
@@ -92,115 +95,176 @@ const Step2MenuDetails = () => {
     ]);
 
     return (
-        <div className="space-y-5">
-            <h2 className="text-2xl font-extrabold">Canteen setup</h2>
-            <p className="text-text/70">Set up your restaurant name, timings, and details.</p>
-
-            <input
-                className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-background"
-                placeholder="Canteen Name"
-                value={restaurantName}
-                onChange={(e) => setRestaurantName(e.target.value)}
-            />
-
-            {/* Cuisine Tags */}
-            <div className="flex flex-wrap gap-2">
-                {tags.map((t) => (
-                    <button
-                        key={t}
-                        type="button"
-                        onClick={() => toggleCuisine(t)}
-                        className={`px-3 py-1 rounded-full border text-sm ${cuisines.includes(t)
-                            ? "bg-primary text-white border-primary"
-                            : "border-gray-300 dark:border-gray-600"
-                            }`}
-                    >
-                        {t}
-                    </button>
-                ))}
+        <div className="space-y-8">
+            <div>
+                <h2 className="text-2xl font-bold mb-2">Canteen Setup</h2>
+                <p className="text-text-secondary">
+                    Set up your canteen name, cuisine types, and operating hours.
+                </p>
             </div>
 
-            {/* Timings */}
-            <div className="grid md:grid-cols-2 gap-4">
-                <label className="text-sm">
-                    Opening Time
-                    <input
-                        type="time"
-                        value={openTime}
-                        onChange={(e) => setOpenTime(e.target.value)}
-                        className="w-full mt-1 p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-background"
+            {/* Basic Info */}
+            <div className="space-y-5">
+                <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                        Canteen Name <span className="text-error">*</span>
+                    </label>
+                    <div className="relative">
+                        <BuildingStorefrontIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted pointer-events-none" />
+                        <input
+                            className="input input-with-icon"
+                            placeholder="Enter your canteen name"
+                            value={restaurantName}
+                            onChange={(e) => setRestaurantName(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                {/* Cuisine Tags */}
+                <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-3">
+                        Cuisine Types <span className="text-error">*</span>
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                        {cuisineTags.map((tag) => (
+                            <button
+                                key={tag}
+                                type="button"
+                                onClick={() => toggleCuisine(tag)}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${cuisines.includes(tag)
+                                        ? "bg-primary text-white shadow-md"
+                                        : "bg-background-subtle border border-border hover:border-primary"
+                                    }`}
+                            >
+                                {tag}
+                            </button>
+                        ))}
+                    </div>
+                    {cuisines.length === 0 && (
+                        <p className="text-text-muted text-sm mt-2">Select at least one cuisine type</p>
+                    )}
+                </div>
+
+                {/* About (optional) */}
+                <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                        About Your Canteen <span className="text-text-muted">(optional)</span>
+                    </label>
+                    <textarea
+                        className="input min-h-[80px] resize-none"
+                        placeholder="Brief description about your canteen..."
+                        value={about}
+                        onChange={(e) => setAbout(e.target.value)}
+                        rows={3}
                     />
-                </label>
-                <label className="text-sm">
-                    Closing Time
-                    <input
-                        type="time"
-                        value={closeTime}
-                        onChange={(e) => setCloseTime(e.target.value)}
-                        className="w-full mt-1 p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-background"
-                    />
-                </label>
+                </div>
             </div>
 
-            {/* Optional about + Sunday open */}
-            <div className="grid md:grid-cols-2 gap-4">
-                <label className="text-sm inline-flex items-center gap-2">
-                    <input
-                        type="checkbox"
-                        checked={isOpenOnSunday}
-                        onChange={(e) => setIsOpenOnSunday(e.target.checked)}
-                    />
-                    Open on Sunday
+            {/* Operating Hours */}
+            <div className="card-flat p-5">
+                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                    <ClockIcon className="w-5 h-5 text-primary" />
+                    Operating Hours
+                </h3>
+                <div className="grid sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label className="block text-sm text-text-muted mb-2">Opening Time</label>
+                        <input
+                            type="time"
+                            value={openTime}
+                            onChange={(e) => setOpenTime(e.target.value)}
+                            className="input"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm text-text-muted mb-2">Closing Time</label>
+                        <input
+                            type="time"
+                            value={closeTime}
+                            onChange={(e) => setCloseTime(e.target.value)}
+                            className="input"
+                        />
+                    </div>
+                </div>
+
+                {/* Sunday Toggle */}
+                <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className="relative">
+                        <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={isOpenOnSunday}
+                            onChange={(e) => setIsOpenOnSunday(e.target.checked)}
+                        />
+                        <div className={`w-11 h-6 rounded-full transition-colors ${isOpenOnSunday ? "bg-primary" : "bg-border"}`}>
+                            <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${isOpenOnSunday ? "translate-x-5" : ""}`} />
+                        </div>
+                    </div>
+                    <span className="text-sm">Open on Sundays</span>
                 </label>
-                <input
-                    className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-background"
-                    placeholder="Short about (optional)"
-                    value={about}
-                    onChange={(e) => setAbout(e.target.value)}
-                />
             </div>
 
             {/* Special Days */}
-            <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                    <label className="text-sm block mb-1">Special Openings</label>
-                    <div className="flex gap-2">
+            <div className="card-flat p-5">
+                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                    <CalendarDaysIcon className="w-5 h-5 text-accent" />
+                    Special Days <span className="text-text-muted font-normal text-sm">(optional)</span>
+                </h3>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                    {/* Special Openings */}
+                    <div>
+                        <label className="block text-sm text-text-muted mb-2">Special Openings</label>
                         <input
                             type="date"
-                            onChange={(e) => addDate("open", e.target.value)}
-                            className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-background"
+                            onChange={(e) => {
+                                addDate("open", e.target.value);
+                                e.target.value = "";
+                            }}
+                            className="input mb-2"
                         />
+                        <div className="flex flex-wrap gap-2">
+                            {specialOpenings.map((d, i) => (
+                                <span key={i} className="inline-flex items-center gap-1 px-3 py-1 text-xs rounded-full bg-success/10 text-success border border-success/20">
+                                    {d}
+                                    <button onClick={() => removeDate("open", i)} className="hover:text-error">
+                                        <XMarkIcon className="w-3 h-3" />
+                                    </button>
+                                </span>
+                            ))}
+                        </div>
                     </div>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                        {specialOpenings.map((d, i) => (
-                            <span key={i} className="px-2 py-1 text-xs rounded-full border">
-                                {d}
-                                <button className="ml-2 text-red-500" onClick={() => removeDate("open", i)}>×</button>
-                            </span>
-                        ))}
-                    </div>
-                </div>
-                <div>
-                    <label className="text-sm block mb-1">Special Closings</label>
-                    <div className="flex gap-2">
+
+                    {/* Special Closings */}
+                    <div>
+                        <label className="block text-sm text-text-muted mb-2">Special Closings</label>
                         <input
                             type="date"
-                            onChange={(e) => addDate("close", e.target.value)}
-                            className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-background"
+                            onChange={(e) => {
+                                addDate("close", e.target.value);
+                                e.target.value = "";
+                            }}
+                            className="input mb-2"
                         />
-                    </div>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                        {specialClosings.map((d, i) => (
-                            <span key={i} className="px-2 py-1 text-xs rounded-full border">
-                                {d}
-                                <button className="ml-2 text-red-500" onClick={() => removeDate("close", i)}>×</button>
-                            </span>
-                        ))}
+                        <div className="flex flex-wrap gap-2">
+                            {specialClosings.map((d, i) => (
+                                <span key={i} className="inline-flex items-center gap-1 px-3 py-1 text-xs rounded-full bg-error/10 text-error border border-error/20">
+                                    {d}
+                                    <button onClick={() => removeDate("close", i)} className="hover:text-error">
+                                        <XMarkIcon className="w-3 h-3" />
+                                    </button>
+                                </span>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {error && (
+                <div className="p-4 rounded-xl bg-error/10 border border-error/20">
+                    <p className="text-sm text-error">{error}</p>
+                </div>
+            )}
         </div>
     );
 };

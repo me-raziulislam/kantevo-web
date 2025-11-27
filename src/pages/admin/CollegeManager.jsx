@@ -1,7 +1,20 @@
+// src/pages/admin/CollegeManager.jsx
+// Premium college manager
+
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
-import ConfirmModal from '../../components/ConfirmModal';
+import {
+    PlusIcon,
+    PencilIcon,
+    TrashIcon,
+    BuildingLibraryIcon,
+    MapPinIcon,
+    HashtagIcon,
+    XMarkIcon,
+    ExclamationTriangleIcon
+} from '@heroicons/react/24/outline';
 import SEO from "../../components/SEO";
 
 const CollegeManager = () => {
@@ -12,12 +25,13 @@ const CollegeManager = () => {
         location: '',
     });
     const [loading, setLoading] = useState(false);
-
-    const [editingCollege, setEditingCollege] = useState(null); // for edit mode
-    const [deleteModalOpen, setDeleteModalOpen] = useState(false); // delete confirmation
+    const [saving, setSaving] = useState(false);
+    const [editingCollege, setEditingCollege] = useState(null);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [collegeToDelete, setCollegeToDelete] = useState(null);
+    const [showForm, setShowForm] = useState(false);
 
-    const { api } = useAuth(); // ✅ use centralized API instance
+    const { api } = useAuth();
 
     // Fetch all colleges
     const fetchColleges = async () => {
@@ -44,23 +58,30 @@ const CollegeManager = () => {
     // Add or update college
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!formData.name || !formData.code) {
+            toast.error('Please fill in required fields');
+            return;
+        }
+
         try {
+            setSaving(true);
             if (editingCollege) {
-                // Update existing college
                 const res = await api.patch(`/colleges/${editingCollege._id}`, formData);
                 toast.success(`College "${res.data.name}" updated!`);
                 setEditingCollege(null);
             } else {
-                // Add new college
                 const res = await api.post('/colleges', formData);
                 toast.success(`College "${res.data.name}" added!`);
             }
 
             setFormData({ name: '', code: '', location: '' });
+            setShowForm(false);
             fetchColleges();
         } catch (err) {
             console.error(err);
             toast.error(err.response?.data?.message || 'Error saving college');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -72,7 +93,7 @@ const CollegeManager = () => {
             code: college.code,
             location: college.location || '',
         });
-        window.scrollTo({ top: 0, behavior: 'smooth' }); // scroll to form
+        setShowForm(true);
     };
 
     // Open delete modal
@@ -99,6 +120,7 @@ const CollegeManager = () => {
     const cancelEdit = () => {
         setEditingCollege(null);
         setFormData({ name: '', code: '', location: '' });
+        setShowForm(false);
     };
 
     useEffect(() => {
@@ -106,115 +128,243 @@ const CollegeManager = () => {
     }, []);
 
     return (
-        <div className="p-6">
-
+        <div className="space-y-6">
             <SEO
                 title="Manage Colleges"
                 description="Admin tool to add and manage colleges using the Kantevo canteen ordering system."
                 canonicalPath="/admin/colleges"
             />
 
-            <h2 className="text-2xl font-bold mb-4">Manage Colleges</h2>
-
-            {/* Add / Edit College Form */}
-            <form
-                onSubmit={handleSubmit}
-                className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4"
-            >
-                <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="College Name"
-                    className="border p-2 rounded"
-                    required
-                />
-                <input
-                    type="text"
-                    name="code"
-                    value={formData.code}
-                    onChange={handleChange}
-                    placeholder="College Code (e.g. NITD123)"
-                    className="border p-2 rounded"
-                    required
-                />
-                <input
-                    type="text"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleChange}
-                    placeholder="Location"
-                    className="border p-2 rounded"
-                />
-                <div className="flex gap-2">
-                    <button
-                        type="submit"
-                        className={`px-4 py-2 rounded text-white ${editingCollege ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-600 hover:bg-green-700'
-                            }`}
-                    >
-                        {editingCollege ? 'Update College' : 'Add College'}
-                    </button>
-                    {editingCollege && (
-                        <button
-                            type="button"
-                            onClick={cancelEdit}
-                            className="px-4 py-2 rounded bg-gray-400 text-white hover:bg-gray-500"
-                        >
-                            Cancel Edit
-                        </button>
-                    )}
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl md:text-3xl font-bold">Manage Colleges</h1>
+                    <p className="text-text-secondary mt-1">Add and manage colleges on the platform</p>
                 </div>
-            </form>
+                <button
+                    onClick={() => { setShowForm(true); setEditingCollege(null); setFormData({ name: '', code: '', location: '' }); }}
+                    className="btn-primary px-5 py-2.5 flex items-center gap-2"
+                >
+                    <PlusIcon className="w-5 h-5" />
+                    Add College
+                </button>
+            </div>
 
-            {loading ? (
-                <p>Loading colleges...</p>
-            ) : (
-                <ul className="space-y-2">
-                    {colleges.map((college) => (
-                        <li
-                            key={college._id}
-                            className="border p-3 rounded shadow-sm flex justify-between items-center"
+            {/* Stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="card p-5">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <BuildingLibraryIcon className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                            <p className="text-2xl font-bold">{colleges.length}</p>
+                            <p className="text-sm text-text-muted">Total Colleges</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Add/Edit Form Modal */}
+            <AnimatePresence>
+                {showForm && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                        onClick={cancelEdit}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="card p-6 max-w-lg w-full"
+                            onClick={(e) => e.stopPropagation()}
                         >
-                            <div>
-                                <strong>{college.name}</strong> ({college.code}) -{' '}
-                                {college.location || '-'}
-                            </div>
-                            <div className="flex gap-2">
-                                {/* Edit Button */}
-                                <button
-                                    onClick={() => handleEdit(college)}
-                                    className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-sm"
-                                >
-                                    Edit
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-bold">
+                                    {editingCollege ? 'Edit College' : 'Add New College'}
+                                </h2>
+                                <button onClick={cancelEdit} className="p-2 hover:bg-background-subtle rounded-lg">
+                                    <XMarkIcon className="w-5 h-5" />
                                 </button>
+                            </div>
 
-                                {/* Delete Button */}
+                            <form onSubmit={handleSubmit} className="space-y-5">
+                                <div>
+                                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                                        College Name <span className="text-error">*</span>
+                                    </label>
+                                    <div className="relative">
+                                        <BuildingLibraryIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted pointer-events-none" />
+                                        <input
+                                            type="text"
+                                            name="name"
+                                            value={formData.name}
+                                            onChange={handleChange}
+                                            placeholder="Enter college name"
+                                            className="input input-with-icon"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                                        College Code <span className="text-error">*</span>
+                                    </label>
+                                    <div className="relative">
+                                        <HashtagIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted pointer-events-none" />
+                                        <input
+                                            type="text"
+                                            name="code"
+                                            value={formData.code}
+                                            onChange={handleChange}
+                                            placeholder="e.g. NITD123"
+                                            className="input input-with-icon uppercase"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                                        Location
+                                    </label>
+                                    <div className="relative">
+                                        <MapPinIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted pointer-events-none" />
+                                        <input
+                                            type="text"
+                                            name="location"
+                                            value={formData.location}
+                                            onChange={handleChange}
+                                            placeholder="City, State"
+                                            className="input input-with-icon"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 pt-4 border-t border-border">
+                                    <button type="button" onClick={cancelEdit} className="btn-secondary flex-1 py-2.5">
+                                        Cancel
+                                    </button>
+                                    <button type="submit" disabled={saving} className="btn-primary flex-1 py-2.5">
+                                        {saving ? 'Saving...' : editingCollege ? 'Update College' : 'Add College'}
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Colleges List */}
+            {loading ? (
+                <div className="card p-12 text-center">
+                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                    <p className="text-text-secondary">Loading colleges...</p>
+                </div>
+            ) : colleges.length === 0 ? (
+                <div className="card p-12 text-center">
+                    <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                        <BuildingLibraryIcon className="w-8 h-8 text-primary" />
+                    </div>
+                    <h3 className="font-semibold text-lg mb-2">No colleges yet</h3>
+                    <p className="text-text-secondary text-sm">Add your first college to get started</p>
+                </div>
+            ) : (
+                <div className="grid gap-4">
+                    {colleges.map((college, i) => (
+                        <motion.div
+                            key={college._id}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.03 }}
+                            className="card p-5"
+                        >
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                                        <BuildingLibraryIcon className="w-6 h-6 text-primary" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-lg">{college.name}</h3>
+                                        <div className="flex flex-wrap items-center gap-3 mt-1">
+                                            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-accent/10 text-accent">
+                                                {college.code}
+                                            </span>
+                                            {college.location && (
+                                                <span className="text-sm text-text-muted flex items-center gap-1">
+                                                    <MapPinIcon className="w-4 h-4" />
+                                                    {college.location}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => handleEdit(college)}
+                                        className="p-2.5 hover:bg-primary/10 rounded-xl text-primary transition-colors"
+                                    >
+                                        <PencilIcon className="w-5 h-5" />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(college)}
+                                        className="p-2.5 hover:bg-error/10 rounded-xl text-error transition-colors"
+                                    >
+                                        <TrashIcon className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            <AnimatePresence>
+                {deleteModalOpen && collegeToDelete && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                        onClick={() => setDeleteModalOpen(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="card p-6 max-w-md w-full text-center"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="w-16 h-16 rounded-full bg-error/10 flex items-center justify-center mx-auto mb-4">
+                                <ExclamationTriangleIcon className="w-8 h-8 text-error" />
+                            </div>
+                            <h3 className="text-xl font-bold mb-2">Delete College?</h3>
+                            <p className="text-text-secondary mb-6">
+                                Are you sure you want to delete "{collegeToDelete.name}"? This action cannot be undone.
+                            </p>
+                            <div className="flex gap-3">
                                 <button
-                                    onClick={() => handleDelete(college)}
-                                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+                                    onClick={() => setDeleteModalOpen(false)}
+                                    className="btn-secondary flex-1 py-2.5"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmDelete}
+                                    className="flex-1 py-2.5 rounded-xl bg-error text-white font-medium hover:bg-error/90 transition-colors"
                                 >
                                     Delete
                                 </button>
                             </div>
-                        </li>
-                    ))}
-                    {colleges.length === 0 && (
-                        <li className="text-center text-text/70 py-4">No colleges found.</li>
-                    )}
-                </ul>
-            )}
-
-            {/* Delete Confirmation Modal using existing Modal component */}
-            {deleteModalOpen && collegeToDelete && (
-                <ConfirmModal
-                    title="Confirm Delete"
-                    onClose={() => setDeleteModalOpen(false)}
-                    onConfirm={confirmDelete}
-                >
-                    Are you sure you want to delete college "{collegeToDelete.name}"? This action cannot be undone.
-                </ConfirmModal>
-            )}
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

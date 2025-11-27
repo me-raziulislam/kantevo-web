@@ -1,10 +1,10 @@
 // components/OTPModal.jsx
-// Unified OTP verification for both signup and login.
-// Includes 60-second resend cooldown to prevent abuse.
-// UPDATED: after signup verification -> go directly to onboarding step1 based on user.role.
+// Premium OTP verification modal with auto-focus and animations
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
+import { motion } from "framer-motion";
+import { ShieldCheckIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 import Modal from "./Modal";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -22,7 +22,7 @@ const OTPModal = ({ isOpen, onClose, email, onVerified, mode = "signup" }) => {
     useEffect(() => {
         if (isOpen) {
             setDigits(["", "", "", "", "", ""]);
-            setTimeout(() => inputsRef.current[0]?.focus(), 50);
+            setTimeout(() => inputsRef.current[0]?.focus(), 100);
         }
     }, [isOpen]);
 
@@ -40,11 +40,27 @@ const OTPModal = ({ isOpen, onClose, email, onVerified, mode = "signup" }) => {
         }
     };
 
+    // Handle paste
+    const onPaste = (e) => {
+        e.preventDefault();
+        const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+        if (pasted.length === 6) {
+            setDigits(pasted.split(""));
+            inputsRef.current[5]?.focus();
+        }
+    };
+
     const code = digits.join("");
 
-    // ---------- Verify OTP ----------
-    const verify = async (e) => {
-        e.preventDefault();
+    // Auto-submit when all 6 digits are entered
+    useEffect(() => {
+        if (code.length === 6 && !busy) {
+            handleVerify();
+        }
+    }, [code]);
+
+    const handleVerify = async (e) => {
+        e?.preventDefault();
         if (code.length !== 6) {
             toast.error("Please enter the 6-digit OTP.");
             return;
@@ -59,21 +75,21 @@ const OTPModal = ({ isOpen, onClose, email, onVerified, mode = "signup" }) => {
             if (result.success) {
                 onVerified?.();
 
-                // NEW: redirect to onboarding directly after signup flow
                 if (mode !== "login") {
-                    const role = (result.user?.role || user?.role);
+                    const role = result.user?.role || user?.role;
                     const base = role === "canteenOwner" ? "canteen" : "student";
                     navigate(`/onboarding/${base}/step1`, { replace: true });
                 }
             }
         } catch {
             toast.error("Invalid or expired OTP.");
+            setDigits(["", "", "", "", "", ""]);
+            inputsRef.current[0]?.focus();
         } finally {
             setBusy(false);
         }
     };
 
-    // ---------- Resend OTP ----------
     const resend = async () => {
         if (cooldown > 0 || resendBusy) return;
         setResendBusy(true);
@@ -96,25 +112,45 @@ const OTPModal = ({ isOpen, onClose, email, onVerified, mode = "signup" }) => {
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Verify OTP" size="sm">
-            <form onSubmit={verify} className="space-y-5">
-                <p className="text-sm text-text/70">
-                    We’ve sent a 6-digit code to <span className="font-medium">{email}</span>.
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Verify your email"
+            size="sm"
+        >
+            <form onSubmit={handleVerify} className="space-y-6">
+                {/* Icon */}
+                <div className="flex justify-center">
+                    <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+                        <ShieldCheckIcon className="w-8 h-8 text-primary" />
+                    </div>
+                </div>
+
+                {/* Description */}
+                <p className="text-sm text-text-secondary text-center">
+                    We've sent a 6-digit code to{" "}
+                    <span className="font-medium text-text">{email}</span>
                 </p>
 
                 {/* OTP Inputs */}
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center justify-center gap-2 sm:gap-3" onPaste={onPaste}>
                     {digits.map((d, i) => (
-                        <input
+                        <motion.input
                             key={i}
                             ref={(el) => (inputsRef.current[i] = el)}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.05 }}
                             inputMode="numeric"
                             pattern="[0-9]*"
                             maxLength={1}
                             value={d}
                             onChange={(e) => onChangeDigit(i, e.target.value)}
                             onKeyDown={(e) => onKeyDown(i, e)}
-                            className="w-11 h-12 text-center text-lg font-semibold rounded-lg border border-gray-300 dark:border-gray-600 bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                            className={`w-11 h-13 sm:w-12 sm:h-14 text-center text-xl font-bold rounded-xl border-2 bg-background transition-all focus:outline-none ${d
+                                    ? "border-primary bg-primary/5"
+                                    : "border-border focus:border-primary"
+                                }`}
                         />
                     ))}
                 </div>
@@ -122,22 +158,41 @@ const OTPModal = ({ isOpen, onClose, email, onVerified, mode = "signup" }) => {
                 {/* Verify Button */}
                 <button
                     type="submit"
-                    disabled={busy}
-                    className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 rounded-lg transition"
+                    disabled={busy || code.length !== 6}
+                    className="w-full btn-primary py-3.5 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                    {busy ? "Verifying..." : "Verify"}
+                    {busy ? (
+                        <>
+                            <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            Verifying...
+                        </>
+                    ) : (
+                        "Verify & Continue"
+                    )}
                 </button>
 
                 {/* Resend OTP */}
-                <div className="text-center text-sm">
-                    Didn’t get the code?{" "}
+                <div className="text-center">
+                    <p className="text-sm text-text-muted mb-2">Didn't receive the code?</p>
                     <button
                         type="button"
                         disabled={resendBusy || cooldown > 0}
                         onClick={resend}
-                        className="text-primary hover:underline disabled:opacity-60"
+                        className="inline-flex items-center gap-2 text-sm text-primary font-medium hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Resend OTP{cooldown > 0 ? ` (${cooldown}s)` : ""}
+                        {resendBusy ? (
+                            <>
+                                <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                                Sending...
+                            </>
+                        ) : cooldown > 0 ? (
+                            `Resend in ${cooldown}s`
+                        ) : (
+                            <>
+                                <ArrowPathIcon className="w-4 h-4" />
+                                Resend OTP
+                            </>
+                        )}
                     </button>
                 </div>
             </form>

@@ -1,11 +1,22 @@
 // src/pages/admin/AdminSettlementCreate.jsx
+// Premium settlement creation page
 
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
-import SEO from "../../components/SEO";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { FaEye, FaCheckCircle, FaClock } from "react-icons/fa";
+import {
+    EyeIcon,
+    PlusCircleIcon,
+    BuildingStorefrontIcon,
+    CalendarDaysIcon,
+    BanknotesIcon,
+    UserIcon,
+    CurrencyRupeeIcon,
+    ReceiptPercentIcon
+} from "@heroicons/react/24/outline";
+import SEO from "../../components/SEO";
 
 const AdminSettlementCreate = () => {
     const { api } = useAuth();
@@ -13,13 +24,13 @@ const AdminSettlementCreate = () => {
 
     const [canteens, setCanteens] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [creating, setCreating] = useState(false);
 
     const [form, setForm] = useState({
         canteenId: "",
         settlementDate: "",
     });
 
-    // NEW: preview state
     const [preview, setPreview] = useState(null);
     const [previewLoading, setPreviewLoading] = useState(false);
 
@@ -71,118 +82,233 @@ const AdminSettlementCreate = () => {
         }
 
         try {
+            setCreating(true);
             const res = await api.post("/settlements/create", {
                 canteenId: form.canteenId,
                 settlementDate: form.settlementDate
             });
 
             toast.success("Settlement created successfully");
-
-            // Redirect to details page
             navigate(`/admin/settlements/${res.data.settlement._id}`);
-
         } catch (err) {
             console.error(err);
             toast.error(err.response?.data?.message || "Failed to create settlement");
+        } finally {
+            setCreating(false);
         }
     };
 
     return (
-        <div className="p-6">
-            <SEO title="Create Settlement" />
+        <div className="space-y-6">
+            <SEO title="Create Settlement" canonicalPath="/admin/settlements-create" />
 
-            <h2 className="text-2xl font-bold mb-4">Create Settlement</h2>
+            {/* Header */}
+            <div>
+                <h1 className="text-2xl md:text-3xl font-bold">Create Settlement</h1>
+                <p className="text-text-secondary mt-1">Generate settlement for canteen owners</p>
+            </div>
 
             {loading ? (
-                <p>Loading...</p>
+                <div className="card p-12 text-center">
+                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                    <p className="text-text-secondary">Loading canteens...</p>
+                </div>
             ) : (
-                <>
-                    <div className="border p-4 bg-background rounded shadow max-w-xl">
+                <div className="grid lg:grid-cols-2 gap-6">
+                    {/* Form Card */}
+                    <div className="card p-6">
+                        <h2 className="text-lg font-semibold mb-6">Settlement Details</h2>
 
-                        {/* Canteen Selector */}
-                        <label className="block mb-1 font-medium">Select Canteen</label>
-                        <select
-                            value={form.canteenId}
-                            onChange={(e) => {
-                                setForm({ ...form, canteenId: e.target.value });
-                                setPreview(null); // reset preview
-                            }}
-                            className="border p-2 rounded w-full mb-4"
-                        >
-                            <option value="">-- Select Canteen --</option>
-                            {canteens.map((c) => (
-                                <option key={c._id} value={c._id}>
-                                    {c.name} ({c.college?.name})
-                                </option>
-                            ))}
-                        </select>
-
-                        {/* Date Selector */}
-                        <label className="block mb-1 font-medium">Settlement Date</label>
-                        <input
-                            type="date"
-                            value={form.settlementDate}
-                            onChange={(e) => {
-                                setForm({ ...form, settlementDate: e.target.value });
-                                setPreview(null); // reset preview
-                            }}
-                            className="border p-2 rounded w-full mb-4"
-                        />
-
-                        {/* Preview Button */}
-                        <button
-                            onClick={handlePreview}
-                            disabled={previewLoading}
-                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2 mb-4"
-                        >
-                            <FaEye /> {previewLoading ? "Loading Preview..." : "Preview Settlement"}
-                        </button>
-
-                        {/* Create Button */}
-                        <button
-                            onClick={handleCreateSettlement}
-                            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/80"
-                        >
-                            Create Settlement
-                        </button>
-                    </div>
-
-                    {/* PREVIEW CARD */}
-                    {preview && (
-                        <div className="mt-6 border rounded bg-background shadow p-6 max-w-3xl">
-                            <h3 className="text-xl font-semibold mb-3">Settlement Preview</h3>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                                <p><strong>Canteen:</strong> {preview.canteen?.name}</p>
-                                <p><strong>Owner:</strong> {preview.owner?.name}</p>
-                                <p><strong>Date:</strong> {new Date(preview.settlementDate).toLocaleDateString()}</p>
-                                <p><strong>Total Orders:</strong> {preview.totalOrders}</p>
-
-                                <p><strong>Total Collected:</strong> ₹{preview.totalAmountCollected}</p>
-                                <p><strong>Platform Fee:</strong> ₹{preview.platformFeeAmount}</p>
-                                <p><strong>GST on Fee:</strong> ₹{preview.gstOnFee}</p>
-                                <p><strong>Final Payable:</strong> ₹{preview.finalPayableAmount}</p>
+                        <div className="space-y-5">
+                            {/* Canteen Selector */}
+                            <div>
+                                <label className="block text-sm font-medium text-text-secondary mb-2">
+                                    Select Canteen <span className="text-error">*</span>
+                                </label>
+                                <div className="relative">
+                                    <BuildingStorefrontIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted pointer-events-none" />
+                                    <select
+                                        value={form.canteenId}
+                                        onChange={(e) => {
+                                            setForm({ ...form, canteenId: e.target.value });
+                                            setPreview(null);
+                                        }}
+                                        className="input input-with-icon appearance-none cursor-pointer"
+                                    >
+                                        <option value="">-- Select Canteen --</option>
+                                        {canteens.map((c) => (
+                                            <option key={c._id} value={c._id}>
+                                                {c.name} ({c.college?.name})
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                        <svg className="w-4 h-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                </div>
                             </div>
 
-                            <h4 className="text-lg font-medium mt-6 mb-2">Included Payments</h4>
-
-                            {preview.payments?.length === 0 ? (
-                                <p className="text-text/70">No payments found for this date.</p>
-                            ) : (
-                                <div className="space-y-3">
-                                    {preview.payments.map((p) => (
-                                        <div key={p._id} className="border rounded p-3 bg-background shadow-sm">
-                                            <p><strong>Amount:</strong> ₹{p.amount}</p>
-                                            <p><strong>User:</strong> {p.user?.name || "-"}</p>
-                                            <p><strong>Date:</strong> {new Date(p.createdAt).toLocaleString()}</p>
-                                            <p><strong>Transaction ID:</strong> {p.transactionId || "-"}</p>
-                                        </div>
-                                    ))}
+                            {/* Date Selector */}
+                            <div>
+                                <label className="block text-sm font-medium text-text-secondary mb-2">
+                                    Settlement Date <span className="text-error">*</span>
+                                </label>
+                                <div className="relative">
+                                    <CalendarDaysIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted pointer-events-none" />
+                                    <input
+                                        type="date"
+                                        value={form.settlementDate}
+                                        onChange={(e) => {
+                                            setForm({ ...form, settlementDate: e.target.value });
+                                            setPreview(null);
+                                        }}
+                                        className="input input-with-icon"
+                                    />
                                 </div>
-                            )}
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-3 pt-4 border-t border-border">
+                                <button
+                                    onClick={handlePreview}
+                                    disabled={previewLoading || !form.canteenId || !form.settlementDate}
+                                    className="btn-secondary flex-1 py-2.5 flex items-center justify-center gap-2 disabled:opacity-50"
+                                >
+                                    <EyeIcon className="w-5 h-5" />
+                                    {previewLoading ? "Loading..." : "Preview"}
+                                </button>
+                                <button
+                                    onClick={handleCreateSettlement}
+                                    disabled={creating || !form.canteenId || !form.settlementDate}
+                                    className="btn-primary flex-1 py-2.5 flex items-center justify-center gap-2 disabled:opacity-50"
+                                >
+                                    <PlusCircleIcon className="w-5 h-5" />
+                                    {creating ? "Creating..." : "Create"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Preview Card */}
+                    <AnimatePresence mode="wait">
+                        {preview && (
+                            <motion.div
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 20 }}
+                                className="card p-6"
+                            >
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center">
+                                        <BanknotesIcon className="w-5 h-5 text-success" />
+                                    </div>
+                                    <h2 className="text-lg font-semibold">Settlement Preview</h2>
+                                </div>
+
+                                {/* Summary */}
+                                <div className="grid grid-cols-2 gap-4 mb-6">
+                                    <div className="p-4 rounded-xl bg-background-subtle">
+                                        <p className="text-sm text-text-muted mb-1">Canteen</p>
+                                        <p className="font-semibold">{preview.canteen?.name}</p>
+                                    </div>
+                                    <div className="p-4 rounded-xl bg-background-subtle">
+                                        <p className="text-sm text-text-muted mb-1">Owner</p>
+                                        <p className="font-semibold">{preview.owner?.name}</p>
+                                    </div>
+                                    <div className="p-4 rounded-xl bg-background-subtle">
+                                        <p className="text-sm text-text-muted mb-1">Date</p>
+                                        <p className="font-semibold">
+                                            {new Date(preview.settlementDate).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                    <div className="p-4 rounded-xl bg-background-subtle">
+                                        <p className="text-sm text-text-muted mb-1">Total Orders</p>
+                                        <p className="font-semibold">{preview.totalOrders}</p>
+                                    </div>
+                                </div>
+
+                                {/* Financial Breakdown */}
+                                <div className="card-flat p-5 mb-6">
+                                    <h3 className="font-semibold mb-4 flex items-center gap-2">
+                                        <CurrencyRupeeIcon className="w-5 h-5 text-primary" />
+                                        Financial Breakdown
+                                    </h3>
+                                    <div className="space-y-3 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="text-text-muted">Total Collected</span>
+                                            <span className="font-medium">₹{preview.totalAmountCollected}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-text-muted">Platform Fee</span>
+                                            <span className="font-medium text-error">- ₹{preview.platformFeeAmount}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-text-muted">GST on Fee</span>
+                                            <span className="font-medium text-error">- ₹{preview.gstOnFee}</span>
+                                        </div>
+                                        <div className="border-t border-border pt-3 flex justify-between">
+                                            <span className="font-semibold">Final Payable</span>
+                                            <span className="font-bold text-success text-lg">₹{preview.finalPayableAmount}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Payments List */}
+                                <div>
+                                    <h3 className="font-semibold mb-4 flex items-center gap-2">
+                                        <ReceiptPercentIcon className="w-5 h-5 text-accent" />
+                                        Included Payments ({preview.payments?.length || 0})
+                                    </h3>
+
+                                    {preview.payments?.length === 0 ? (
+                                        <div className="p-4 rounded-xl bg-warning/10 border border-warning/20 text-center">
+                                            <p className="text-warning text-sm">No payments found for this date</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3 max-h-64 overflow-y-auto">
+                                            {preview.payments.map((p) => (
+                                                <div key={p._id} className="p-4 rounded-xl bg-background-subtle">
+                                                    <div className="flex justify-between items-start">
+                                                        <div>
+                                                            <p className="font-medium">₹{p.amount}</p>
+                                                            <p className="text-sm text-text-muted flex items-center gap-1 mt-1">
+                                                                <UserIcon className="w-4 h-4" />
+                                                                {p.user?.name || "-"}
+                                                            </p>
+                                                        </div>
+                                                        <div className="text-right text-sm">
+                                                            <p className="text-text-muted">
+                                                                {new Date(p.createdAt).toLocaleString()}
+                                                            </p>
+                                                            <p className="text-xs font-mono text-text-muted mt-1">
+                                                                {p.transactionId || "-"}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Empty State */}
+                    {!preview && (
+                        <div className="card p-12 text-center flex flex-col items-center justify-center">
+                            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+                                <EyeIcon className="w-8 h-8 text-primary" />
+                            </div>
+                            <h3 className="font-semibold text-lg mb-2">Preview Settlement</h3>
+                            <p className="text-text-secondary text-sm">
+                                Select a canteen and date, then click "Preview" to see the settlement details
+                            </p>
                         </div>
                     )}
-                </>
+                </div>
             )}
         </div>
     );
