@@ -111,7 +111,16 @@ export default function TermsOfUse() {
         },
         {
             title: "16. Copyright & IP Infringement",
-            content: `Kantevo respects intellectual property rights. If you believe your copyrighted work is used on the Platform without authorization, please email a detailed notice to legal@kantevo.com including description of the work, proof of ownership, URL/screenshot, your contact details, and a statement made under good faith.`,
+            content: null,
+            customContent: (
+                <p className="text-text-secondary">
+                    Kantevo respects intellectual property rights. If you believe your copyrighted work is used on the Platform without authorization, please email a detailed notice to{" "}
+                    <a href="mailto:legal@kantevo.com" className="text-primary hover:underline">
+                        legal@kantevo.com
+                    </a>{" "}
+                    including description of the work, proof of ownership, URL/screenshot, your contact details, and a statement made under good faith.
+                </p>
+            ),
         },
         {
             title: "17. Feedback and Suggestions",
@@ -119,11 +128,38 @@ export default function TermsOfUse() {
         },
         {
             title: "18. Contact & Grievance",
-            content: `Kantevo (Udyam Registered MSME)\nEmail: support@kantevo.com\nResponse Time: within 48 business hours\nOperating Hours: Mon–Fri, 10:00 AM–6:00 PM (IST)\n\nFor legal notices: legal@kantevo.com`,
+            content: null,
+            customContent: (
+                <div className="text-text-secondary space-y-2">
+                    <p>Kantevo (Udyam Registered MSME)</p>
+                    <p>
+                        Email:{" "}
+                        <a href="mailto:support@kantevo.com" className="text-primary hover:underline">
+                            support@kantevo.com
+                        </a>
+                    </p>
+                    <p>Response Time: within 48 business hours</p>
+                    <p>Operating Hours: Mon–Fri, 10:00 AM–6:00 PM (IST)</p>
+                    <p className="pt-2">
+                        For legal notices:{" "}
+                        <a href="mailto:legal@kantevo.com" className="text-primary hover:underline">
+                            legal@kantevo.com
+                        </a>
+                    </p>
+                </div>
+            ),
         },
         {
             title: "19. Anti-Fraud & Safety Notice",
-            content: `Kantevo representatives will never ask for your OTP, card PIN, full card number, or passwords. If you receive such a request, do not share any information and report it immediately to security@kantevo.com.`,
+            content: null,
+            customContent: (
+                <p className="text-text-secondary">
+                    Kantevo representatives will never ask for your OTP, card PIN, full card number, or passwords. If you receive such a request, do not share any information and report it immediately to{" "}
+                    <a href="mailto:security@kantevo.com" className="text-primary hover:underline">
+                        security@kantevo.com
+                    </a>.
+                </p>
+            ),
         },
     ];
 
@@ -185,6 +221,8 @@ export default function TermsOfUse() {
                                 {section.content && (
                                     <p className="text-text-secondary whitespace-pre-line">{section.content}</p>
                                 )}
+
+                                {section.customContent && section.customContent}
 
                                 {section.note && (
                                     <p className="mt-4 p-4 rounded-xl bg-warning/10 text-warning text-sm">
