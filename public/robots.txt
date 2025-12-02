@@ -15,12 +15,7 @@ Disallow: /payment/
 
 # ✅ Allow all public routes (Home, About, Login, Register, Legal pages)
 Allow: /about
-Allow: /login
-Allow: /register
-Allow: /privacy-policy
-Allow: /terms-of-use
-Allow: /return-policy
-Allow: /refund-policy
+Allow: /partner-with-us
 
 # =========================
 # Sitemap Reference

@@ -18,7 +18,7 @@
   </url>
 
   <!-- ===== Legal Pages ===== -->
-  <url>
+  <!-- <url>
     <loc>https://kantevo.com/privacy-policy</loc>
     <priority>0.70</priority>
   </url>
@@ -36,6 +36,6 @@
   <url>
     <loc>https://kantevo.com/refund-policy</loc>
     <priority>0.70</priority>
-  </url>
+  </url> -->
 
 </urlset>
